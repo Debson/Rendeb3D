@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <GL/gl3w.h>
+#include <glad/glad.h>
 #include <gtc/matrix_transform.hpp>
 
 #include "input.h"
@@ -136,15 +136,20 @@ namespace md
 		SDL_GL_MakeCurrent(mWindow, mContext);
 
 		//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+		//SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	}
 
 	void core::SetupGlew()
 	{
-		gl3wInit();
+		printf("OpenGL loaded\n");
+		gladLoadGLLoader(SDL_GL_GetProcAddress);
+		printf("Vendor:   %s\n", glGetString(GL_VENDOR));
+		printf("Renderer: %s\n", glGetString(GL_RENDERER));
+		printf("Version:  %s\n", glGetString(GL_VERSION));
 
 		glEnable(GL_DEPTH_TEST);
 		//glEnable(GL_BLEND);

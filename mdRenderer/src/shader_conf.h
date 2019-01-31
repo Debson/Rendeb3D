@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <glm.hpp>
-#include <GL/gl3w.h>
+#include <glad/glad.h>
 #include <glm.hpp>
 
 

@@ -4,12 +4,14 @@
 #include "camera.h"
 #include "app_handler_interface.h"
 #include "objects.h"
+#include "animator.h"
 
 namespace md
 {
 	class Scene : public core::ApplicationHandlerInterface
 	{
 	public:
+		~Scene();
 		void OnWindowOpen();
 		void OnWindowClose();
 		void OnRealtimeUpdate();
@@ -25,10 +27,9 @@ namespace md
 		mdGraphics::Shader m_DefaultShader;
 		gui::Gui m_Gui;
 		mdGraphics::Camera m_Camera;
+		engine::Animator m_Animator;
 
-
-		engine::GameObject myGameObj[5];
-		engine::GameObject myModel;
+		engine::GameObject *myModel;
 
 		b8 m_DebugMode;
 	};

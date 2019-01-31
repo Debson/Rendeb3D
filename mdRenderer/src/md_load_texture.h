@@ -4,7 +4,7 @@
 #define MDLOAD_TEXTURE_H
 
 
-#include <GL/gl3w.h>
+#include <glad/glad.h>
 #include <glm.hpp>
 #include <iostream>
 #include <vector>

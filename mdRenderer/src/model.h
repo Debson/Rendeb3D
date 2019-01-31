@@ -2,22 +2,28 @@
 #define MODEL_H
 
 #include <vector>
+#include <map>
 #include <fstream>
 #include <iostream>
 #include <map>
 
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtx/quaternion.hpp>
-#include <gtx/matrix_interpolation.hpp>
-
+/*#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/matrix_interpolation.hpp>
+*/
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/cimport.h>
 
 #include "graphics.h"
 #include "mesh.h"
 #include "types.h"
+#include "math.h"
 
 #include "md_load_texture.h"
 
@@ -28,19 +34,101 @@ namespace engine
 	namespace graphics
 	{
 		typedef std::vector<Texture> Textures;
+		
+		struct anim_t
+		{
+			Assimp::Importer mImporter;
+			const aiScene *mScene;
+		};
+
+		typedef std::map<std::string, anim_t*> Animations;
+
 
 		class Model
 		{
 		public:
-			Model() { }
+			Model() { std::cout << "Model\n"; }
 
 			Model(std::string const &path, bool gamma = false) :
 				m_BoneCount(0), m_VerticesCount(0), m_hasBones(false), m_Path(path)
 			{
 				loadModel(path);
+				std::cout << "Model\n";
 			}
 			
-			virtual ~Model() { }
+			~Model() 
+			{ 
+				for (auto & anim : animationsLoaded)
+				{
+					delete anim.second;
+				}
+			}
+
+			void LoadAnimation(std::string const &name, std::string const &path)
+			{
+				anim_t *anim = new anim_t();
+				anim->mScene = anim->mImporter.ReadFile(path, aiProcess_Triangulate
+					| aiProcess_GenSmoothNormals
+					| aiProcess_FlipUVs
+					| aiProcess_JoinIdenticalVertices);
+
+				if (!anim->mScene || !anim->mScene->mRootNode)
+				{
+					std::cout << "ERROR::ASSIMP:: " << anim->mImporter.GetErrorString() << std::endl;
+					return;
+				}
+
+				animationsLoaded.insert(std::make_pair(name, anim));
+
+				/*if (name == "Header")
+					m_CurrentScene = animationsLoaded["Header"];*/
+			}
+
+			void ChangeAnimation(std::string const &name)
+			{
+				if (animationsLoaded.find(name) != animationsLoaded.end())
+					m_CurrentScene = animationsLoaded[name];
+				else
+					// Add md_error
+					std::cout << "ERROR:: Couldn't find animation: " + name << std::endl;
+			}
+
+			void BoneTransform(f64 timeInSeconds, std::vector<glm::mat4> &transforms)
+			{
+				aiMatrix4x4 identity = aiMatrix4x4();
+
+				/*Assimp::Importer importer;
+				m_Scene = importer.ReadFile(m_Path, aiProcess_Triangulate
+					| aiProcess_GenSmoothNormals
+					| aiProcess_FlipUVs
+					| aiProcess_JoinIdenticalVertices);
+
+
+				if (!m_Scene || m_Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_Scene->mRootNode)
+				{
+					std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+					return;
+				}*/
+
+				/*f32 ticksPerSec = (f32)(m_Scene->mAnimations[0]->mTicksPerSecond != 0 ? m_Scene->mAnimations[0]->mTicksPerSecond : 25.f);
+				f32 timeInTicks = timeInSeconds * ticksPerSec;
+				f32 animTime = fmod(timeInTicks, (f32)m_Scene->mAnimations[0]->mDuration);
+
+				ReadNodeHierarchy(animTime, m_Scene->mRootNode, identity);*/
+
+				f32 ticksPerSec = (f32)(m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond != 0 ? m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond : 25.f);
+				f32 timeInTicks = timeInSeconds * ticksPerSec;
+				f32 animTime = fmod(timeInTicks, (f32)m_CurrentScene->mScene->mAnimations[0]->mDuration);
+
+				ReadNodeHierarchy(animTime, m_CurrentScene->mScene->mRootNode, identity);
+
+				transforms.resize(bonesInfo.size());
+
+				for (u32 i = 0; i < bonesInfo.size(); i++)
+				{
+					transforms[i] = mdEngine::math::aiMatrix4x4ToGlm(bonesInfo[i].finalTransform);
+				}
+			}
 
 			void DrawModel(Shader *shader)
 			{
@@ -49,15 +137,17 @@ namespace engine
 			}
 
 			Textures texturesLoaded;
+			Animations animationsLoaded;
 			std::vector<Mesh> meshes;
 			std::vector<BoneInfo> bonesInfo;
 
 			std::string dir;
 			b8 gammaCorrection;
 
-		protected:
+			// Create get methods 
 			b8 m_hasBones;
 			std::string m_Path;
+		protected:
 
 			u32 FindPosition(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
@@ -101,110 +191,139 @@ namespace engine
 				return 0;
 			}
 
-			void CalcInterpolatedPosition(glm::vec3 &out, f32 animTime, const aiNodeAnim *nodeAnim)
+			aiMatrix4x4 CalcInterpolatedPosition(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
-				if (nodeAnim->mNumPositionKeys == 1)
+
+				aiVector3D translation;
+
+				if(nodeAnim->mNumPositionKeys == 1)
 				{
-					out = reinterpret_cast<glm::vec3&>(nodeAnim->mPositionKeys[0].mValue);
-					return;
+						translation = nodeAnim->mPositionKeys[0].mValue;
+				}
+				else
+				{
+					u32 frameIndex = 0;
+					for (uint32_t i = 0; i < nodeAnim->mNumPositionKeys - 1; i++)
+					{
+						if(animTime < (float)nodeAnim->mPositionKeys[i + 1].mTime)
+						{
+							frameIndex = i;
+							break;
+						}
 				}
 
-				u32 posIndex = FindPosition(animTime, nodeAnim);
-				u32 nextPosIndex = posIndex + 1;
-				assert(nextPosIndex < nodeAnim->mNumPositionKeys);
-				f32 deltaTime = (f32)(nodeAnim->mPositionKeys[nextPosIndex].mTime - nodeAnim->mPositionKeys[posIndex].mTime);
-				f32 factor = (animTime - (f32)nodeAnim->mPositionKeys[posIndex].mTime) / deltaTime;
-				assert(factor >= 0.f && factor <= 1.f);
-				const glm::vec3 &start = reinterpret_cast<glm::vec3&>(nodeAnim->mPositionKeys[posIndex].mValue);
-				const glm::vec3 &end = reinterpret_cast<glm::vec3&>(nodeAnim->mPositionKeys[nextPosIndex].mValue);
-				glm::vec3 delta = end - start;
+					aiVectorKey currentFrame = nodeAnim->mPositionKeys[frameIndex];
+					aiVectorKey nextFrame = nodeAnim->mPositionKeys[(frameIndex + 1) % nodeAnim->mNumPositionKeys];
 
-				out = start + (factor * delta);
+					float delta = (animTime - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
+
+					const aiVector3D& start = currentFrame.mValue;
+					const aiVector3D& end = nextFrame.mValue;
+
+					translation = (start + delta * (end - start));
+				}
+
+				aiMatrix4x4 mat;
+				aiMatrix4x4::Translation(translation, mat);
+				return mat;
 			}
 
-			void CalcInterploatedRotation(glm::quat &out, f32 animTime, const aiNodeAnim *nodeAnim)
+			aiMatrix4x4 CalcInterploatedRotation(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
+				aiQuaternion rotation;
+
 				if (nodeAnim->mNumRotationKeys == 1)
 				{
-					out = reinterpret_cast<glm::quat&>(nodeAnim->mRotationKeys[0].mValue);
-					out.convertToGLM();
-					return;
+					rotation = nodeAnim->mRotationKeys[0].mValue;
+				}
+				else
+				{
+					uint32_t frameIndex = 0;
+					for (uint32_t i = 0; i < nodeAnim->mNumRotationKeys - 1; i++)
+					{
+						if (animTime < (float)nodeAnim->mRotationKeys[i + 1].mTime)
+						{
+							frameIndex = i;
+							break;
+						}
+					}
+
+					aiQuatKey currentFrame = nodeAnim->mRotationKeys[frameIndex];
+					aiQuatKey nextFrame = nodeAnim->mRotationKeys[(frameIndex + 1) % nodeAnim->mNumRotationKeys];
+
+					float delta = (animTime - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
+
+					const aiQuaternion& start = currentFrame.mValue;
+					const aiQuaternion& end = nextFrame.mValue;
+
+					aiQuaternion::Interpolate(rotation, start, end, delta);
+					rotation.Normalize();
 				}
 
-				u32 rotationIndex = FindRotation(animTime, nodeAnim);
-				u32 nextRotationIndex = rotationIndex + 1;
-				assert(nextRotationIndex < nodeAnim->mNumRotationKeys);
-				f32 deltaTime = (f32)(nodeAnim->mRotationKeys[nextRotationIndex].mTime - nodeAnim->mRotationKeys[rotationIndex].mTime);
-				f32 factor = (animTime - (f32)nodeAnim->mRotationKeys[rotationIndex].mTime) / deltaTime;
-				assert(factor >= 0.f && factor <= 1.f);
-				glm::quat &startRotationQ(reinterpret_cast<glm::quat&>(nodeAnim->mRotationKeys[rotationIndex].mValue));
-				glm::quat &endRotationQ(reinterpret_cast<glm::quat&>(nodeAnim->mRotationKeys[nextRotationIndex].mValue));
-				//startRotationQ.convertToGLM();
-				//endRotationQ.convertToGLM();
-
-				out = glm::slerp(startRotationQ, endRotationQ, factor);
-				out = glm::normalize(out);
-				//out.convertToGLM();
+				aiMatrix4x4 mat(rotation.GetMatrix());
+				return mat;
 			}
 
-			void CalcInterpolatedScaling(glm::vec3 &out, f32 animTime, const aiNodeAnim *nodeAnim)
+			aiMatrix4x4 CalcInterpolatedScaling(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
+				aiVector3D scale;
+
 				if (nodeAnim->mNumScalingKeys == 1)
 				{
-					out = reinterpret_cast<glm::vec3&>(nodeAnim->mScalingKeys[0].mValue);
-					return;
+					scale = nodeAnim->mScalingKeys[0].mValue;
+				}
+				else
+				{
+					uint32_t frameIndex = 0;
+					for (uint32_t i = 0; i < nodeAnim->mNumScalingKeys - 1; i++)
+					{
+						if (animTime < (float)nodeAnim->mScalingKeys[i + 1].mTime)
+						{
+							frameIndex = i;
+							break;
+						}
+					}
+
+					aiVectorKey currentFrame = nodeAnim->mScalingKeys[frameIndex];
+					aiVectorKey nextFrame = nodeAnim->mScalingKeys[(frameIndex + 1) % nodeAnim->mNumScalingKeys];
+
+					float delta = (animTime - (float)currentFrame.mTime) / (float)(nextFrame.mTime - currentFrame.mTime);
+
+					const aiVector3D& start = currentFrame.mValue;
+					const aiVector3D& end = nextFrame.mValue;
+
+					scale = (start + delta * (end - start));
 				}
 
-				u32 scalingIndex = FindScaling(animTime, nodeAnim);
-				u32 nextScalingIndex = scalingIndex + 1;
-				assert(nextScalingIndex < nodeAnim->mNumScalingKeys);
-				f32 deltaTime = (f32)(nodeAnim->mScalingKeys[nextScalingIndex].mTime - nodeAnim->mScalingKeys[scalingIndex].mTime);
-				f32 factor = (animTime - (f32)nodeAnim->mScalingKeys[scalingIndex].mTime) / deltaTime;
-				assert(factor >= 0.f && factor <= 1.f);
-				const glm::vec3 &start = reinterpret_cast<glm::vec3&>(nodeAnim->mScalingKeys[scalingIndex].mValue);
-				const glm::vec3 &end = reinterpret_cast<glm::vec3&>(nodeAnim->mScalingKeys[nextScalingIndex].mValue);
-				glm::vec3 delta = end - start;
-
-				out = start + (factor * delta);
+				aiMatrix4x4 mat;
+				aiMatrix4x4::Scaling(scale, mat);
+				return mat;
 			}
 
-			void ReadNodeHierarchy(f32 animTime, const aiNode *node, const glm::mat4 &parentTransform)
+			void ReadNodeHierarchy(f32 animTime, const aiNode *node, const aiMatrix4x4 &parentTransform)
 			{
 				std::string nodeName(node->mName.data);
 
-				const aiAnimation *pAnim = m_Scene->mAnimations[0];
-				glm::mat4 nodeTransformation = (glm::mat4&)node->mTransformation;
+				//const aiAnimation *pAnim = m_Scene->mAnimations[0];
+				const aiAnimation *pAnim = m_CurrentScene->mScene->mAnimations[0];
+
+				aiMatrix4x4 nodeTransformation = node->mTransformation;
 
 				const aiNodeAnim *nodeAnim = FindNodeAnim(pAnim, nodeName);
 
-				if ((int)animTime % 23 == 0 && (int)animTime / 23 == 1 && nodeName == "forearm.L")
-					std::cout << "test";
-
 				if (nodeAnim)
 				{
-					glm::vec3 scaling;
-					CalcInterpolatedScaling(scaling, animTime, nodeAnim);
-					glm::mat4 scalingM;
-					scalingM = glm::initScale(scalingM, scaling);
+					aiMatrix4x4 matScale = CalcInterpolatedScaling(animTime, nodeAnim);
 
-					glm::quat rotationQ;
-					CalcInterploatedRotation(rotationQ, animTime, nodeAnim);
-					glm::quat rotQ = reinterpret_cast<glm::quat&>(rotationQ);
-					rotQ.convertToGLM();
-					glm::mat4 rotationM = glm::mat4(glm::ai_mat3_cast(rotQ));
-
+					aiMatrix4x4 matRotation = CalcInterploatedRotation(animTime, nodeAnim);
 					
-					glm::vec3 translation;
-					CalcInterpolatedPosition(translation, animTime, nodeAnim);
-					glm::mat4 translationM;
-					translationM = glm::initTranslation(translationM, translation);
+					aiMatrix4x4 matTranslation = CalcInterpolatedPosition(animTime, nodeAnim);
 
-					nodeTransformation = translationM * rotationM * scalingM;
-					//nodeTransformation = rotationM * scalingM;
+					nodeTransformation = matTranslation * matRotation * matScale;
 				}
 
 				
-				glm::mat4 globalTransformation = parentTransform * nodeTransformation;
+				aiMatrix4x4 globalTransformation = parentTransform * nodeTransformation;
 
 				auto it = std::find_if(bonesInfo.begin(), bonesInfo.end(), [&]
 				(const BoneInfo & ref) { return ref.name == nodeName; });
@@ -212,52 +331,16 @@ namespace engine
 				if (it != bonesInfo.end())
 				{
 					BoneInfo *bone = &bonesInfo.at(std::distance(bonesInfo.begin(), it));
-					u32 boneIndex = bone->index;
-					glm::mat4 globalInverseTransform = reinterpret_cast<glm::mat4&>(m_Scene->mRootNode->mTransformation);
-					globalInverseTransform = glm::inverse(globalInverseTransform);
+					aiMatrix4x4 globalInverseTransform = m_CurrentScene->mScene->mRootNode->mTransformation;
+					//aiMatrix4x4 globalInverseTransform = animationsLoaded["test"].mRootNode->mTransformation;
+					globalInverseTransform.Inverse();
 					bone->finalTransform = globalInverseTransform * globalTransformation * bone->boneOffset;
-					//std::cout << nodeName << std::endl;
 				}
 
 				for (u32 i = 0; i < node->mNumChildren; i++)
 					ReadNodeHierarchy(animTime, node->mChildren[i], globalTransformation);
 
 			}
-
-			void BoneTransform(f32 timeInSeconds, std::vector<glm::mat4> &transforms)
-			{
-				glm::mat4 identity = glm::mat4();
-
-				Assimp::Importer importer;
-				m_Scene = importer.ReadFile(m_Path, aiProcess_Triangulate
-					| aiProcess_GenSmoothNormals
-					| aiProcess_FlipUVs
-					| aiProcess_JoinIdenticalVertices);
-
-
-				if (!m_Scene || m_Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_Scene->mRootNode)
-				{
-					std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
-					return;
-				}
-
-				f32 ticksPerSec = (f32)(m_Scene->mAnimations[0]->mTicksPerSecond != 0 ? m_Scene->mAnimations[0]->mTicksPerSecond : 25.f);
-				f32 timeInTicks = timeInSeconds * ticksPerSec;
-				f32 animTime = fmod(timeInTicks, (f32)m_Scene->mAnimations[0]->mDuration);
-
-				ReadNodeHierarchy(animTime, m_Scene->mRootNode, identity);
-
-				transforms.resize(bonesInfo.size());
-
-				u32 startIndex = 0;
-
-				for (u32 i = 0; i < bonesInfo.size(); i++)
-				{
-					transforms[i] = bonesInfo[i].finalTransform;
-					//transforms[i] = glm::mat4();
-				}
-			}
-
 
 			const aiNodeAnim *FindNodeAnim(const aiAnimation *anim, const std::string &nodeName)
 			{
@@ -272,29 +355,38 @@ namespace engine
 				return nullptr;
 			}
 
-		private:
-
+		private:	
 			u32 m_BoneCount;
 			u32 m_VerticesCount;
-			const aiScene *m_Scene;
+			anim_t *m_CurrentScene;
+
+			/*const aiScene *m_Scene;
+			Assimp::Importer m_Importer;*/
+
 
 			void loadModel(std::string const &path)
 			{
-				Assimp::Importer importer;
-				m_Scene = importer.ReadFile(path, aiProcess_Triangulate 
+				anim_t *first = new anim_t();
+				first->mScene = first->mImporter.ReadFile(path, aiProcess_Triangulate
 															  | aiProcess_GenSmoothNormals
 															  | aiProcess_FlipUVs
 															  | aiProcess_JoinIdenticalVertices);
 
-				
-				if (!m_Scene || m_Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_Scene->mRootNode)
+				if (!first->mScene || first->mScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !first->mScene->mRootNode)
 				{
-					std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+					std::cout << "ERROR::ASSIMP:: " << first->mImporter.GetErrorString() << std::endl;
 					return;
 				}
+
+				// Save default animation on model load
+				animationsLoaded.insert(std::make_pair("Start", first));
+
+				// Set default animation
+				m_CurrentScene = animationsLoaded["Start"];
+
 				dir = path.substr(0, path.find_last_of('/'));
-				
-				processNode(m_Scene->mRootNode, m_Scene);
+
+				processNode(m_CurrentScene->mScene->mRootNode, m_CurrentScene->mScene);
 			}
 
 			void processNode(aiNode *node, const aiScene *scene)
@@ -303,7 +395,6 @@ namespace engine
 				{
 					aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 					meshes.push_back(processMesh(mesh, scene));
-					//processBones(mesh, baseVertex);
 					m_VerticesCount += mesh->mNumVertices;
 				}
 
@@ -325,37 +416,16 @@ namespace engine
 						boneIndex = m_BoneCount;
 						m_BoneCount++;
 						BoneInfo bi;
-						bi.boneOffset = reinterpret_cast<glm::mat4&>(mesh->mBones[i]->mOffsetMatrix);
+						bi.boneOffset = mesh->mBones[i]->mOffsetMatrix;
 						bi.name = boneName;
 						bi.index = boneIndex;
 
-
-						/*std::fstream file("bones1.txt", std::fstream::out | std::fstream::app);
-						if (file.is_open())
-						{
-							file << "Bone Name: " << bi.name << "\n";
-							file << "Bone Index: " << bi.index << "\n";
-							file << "Bone Matrix:\n";
-							for (u32 i = 0; i < 4; i++)
-							{
-								for (u32 j = 0; j < 4; j++)
-								{
-									file << bi.boneOffset[i][j] << " ";
-								}
-								file << "\n";
-							}
-							file << "\n\n\n";
-						}
-						file.close();*/
-
 						bonesInfo.push_back(bi);
-						//mBonesInfo->push_back(bi);
 					}
 					else
 					{
 						boneIndex = bonesInfo.at(std::distance(bonesInfo.begin(), it)).index;
 					}
-					//std::cout << mesh->mBones[i]->mName.data << std::endl;
 
 					for (u32 j = 0; j < mesh->mBones[i]->mNumWeights; j++)
 					{
@@ -366,8 +436,6 @@ namespace engine
 					}
 					std::cout << std::endl;
 				}
-
-
 			}
 
 			Mesh processMesh(aiMesh *mesh, const aiScene *scene)
@@ -377,12 +445,6 @@ namespace engine
 				std::vector<BoneInfo> mBonesInfo;;
 				std::vector<u32> indices;
 				Textures textures;
-
-				glm::quat q;
-
-				glm::mat4 m = glm::toMat4(q);
-
-				m = glm::mat4();
 
 				for (u32 i = 0; i < mesh->mNumVertices; i++)
 				{
@@ -490,8 +552,9 @@ namespace engine
 						
 					}
 
-					return textures;
+					//return textures;
 				}
+                return textures;
 			}
 
 			

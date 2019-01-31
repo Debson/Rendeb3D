@@ -6,7 +6,7 @@ namespace md
 {
 	mdPhysics::Transform::Transform() : position(0.f), localScale(1.f), m_RotationAngle(0.f), m_Rotated(false) { }
 
-	mdPhysics::Transform::~Transform() { }
+	//mdPhysics::Transform::~Transform() { }
 
 	void mdPhysics::Transform::Rotate(f32 xAngle, f32 yAngle, f32 zAngle)
 	{
@@ -29,7 +29,7 @@ namespace md
 		if (angle != 0)
 		{
 			m_Rotated = true;
-			m_RotateModel = glm::mat4();
+			m_RotateModel = glm::mat4(1.f);
 			m_RotateModel = glm::translate(m_RotateModel, position);
 			m_RotateModel = glm::scale(m_RotateModel, localScale);
 
@@ -53,7 +53,7 @@ namespace md
 	{
 		if (m_Rotated)
 			model = m_RotateModel;
-		else
+		//else
 		{
 			model = glm::translate(model, position);
 			model = glm::scale(model, localScale);

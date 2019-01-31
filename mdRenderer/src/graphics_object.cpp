@@ -8,11 +8,11 @@ namespace md
 	engine::Graphics::Graphics() { }
 
 	engine::Graphics::Graphics(graphics::Type type)
-	{ 
-		m_Type = type;
-		InitializeFromVertices();
+	{
+		m_Renderable.m_Type = type;
+		m_Renderable.InitializeFromVertices();
 
-		switch (m_Type)
+		switch (m_Renderable.m_Type)
 		{
 		case (graphics::Type::tCube): {
 			//InitializeFromVertices(vertices::cubeVertices);
@@ -25,12 +25,16 @@ namespace md
 		}
 	}
 
-	engine::Graphics::Graphics(std::string name, std::string path) : Model(path)
+	engine::Graphics::Graphics(std::string name, std::string path)
 	{
-		m_Type = graphics::Type::tModel;
+		m_Renderable.m_Type = graphics::Type::tModel;
+		m_Model = new graphics::Model(path);
 	}
 
-	engine::Graphics::~Graphics() { }
+	engine::Graphics::~Graphics() 
+	{ 
+		delete m_Model;
+	}
 
 	void engine::Graphics::Render(mdGraphics::Shader *shader)
 	{
@@ -38,34 +42,39 @@ namespace md
 		shader->UpdateMatrices();
 
 		
-		if (m_Type == graphics::Type::tModel)
+		if (m_Renderable.m_Type == graphics::Type::tModel)
 		{
-			if (m_hasBones)
+			if (m_Model->m_hasBones)
 			{
 				f64 runningTime = time::Time();
 				//std::cout << runningTime << std::endl;
 
 				std::vector<glm::mat4> transforms;
-				this->BoneTransform(runningTime, transforms);
+				this->m_Model->BoneTransform(runningTime, transforms);
 
 				for (u32 i = 0; i < transforms.size(); i++)
 				{
-					shader->setMat4("gBones[" + std::to_string(i) + "]", transforms[i], true);
+					shader->setMat4("gBones[" + std::to_string(i) + "]", transforms[i]);
 				}
 			}
-			DrawModel(shader);
+			m_Model->DrawModel(shader);
 		}
 		else
-			Draw();
+			m_Renderable.Draw();
 	}
 
 	void engine::Graphics::ApplyTexture(GLuint tex)
 	{
-		m_Texture = tex;
+		m_Renderable.m_Texture = tex;
+	}
+
+	engine::graphics::Model *engine::Graphics::GetModel()
+	{
+		return m_Model;
 	}
 
 	void engine::Graphics::ApplyTexture(std::string texPath)
 	{
-		m_Texture = mdLoadTexture(texPath);
+		m_Renderable.m_Texture = mdLoadTexture(texPath);
 	}
 }

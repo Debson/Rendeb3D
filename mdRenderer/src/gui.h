@@ -3,7 +3,7 @@
 
 #include "../external/imgui/imgui.h"
 #include "../external/imgui/imgui_impl_sdl.h"
-#include "../external/imgui/imgui_impl_opengl3.h">
+#include "../external/imgui/imgui_impl_opengl3.h"
 
 #include "types.h"
 

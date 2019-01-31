@@ -74,7 +74,7 @@ namespace md
 					return m_Projection;
 				}
 
-				void ProcessKeyboard(CameraMovement dir, f32 dT, float speed = SPEED)
+				void ProcessKeyboard(CameraMovement dir, f64 dT, float speed = SPEED)
 				{
 					f32 velocity = speed * dT;
 					

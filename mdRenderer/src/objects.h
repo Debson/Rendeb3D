@@ -3,14 +3,13 @@
 
 #include <iostream>
 
-#include <GL/gl3w.h>
+#include <glad/glad.h>
 
 #include "types.h"
 #include "graphics.h"
 #include "physics.h"
 #include "gui.h"
 #include "model.h"
-
 
 
 namespace md
@@ -39,21 +38,23 @@ namespace md
 			void OnCreate(std::string &name);
 		};
 
-		class Graphics : public graphics::Renderable, public graphics::Model
+		class Graphics 
 		{
 		public:
 			Graphics();
 			explicit Graphics(graphics::Type type);
 			Graphics(std::string name, std::string path);
-			virtual ~Graphics();
+			~Graphics();
 
 			virtual void Render(mdGraphics::Shader *shader);
 			virtual void ApplyTexture(GLuint);
 			virtual void ApplyTexture(std::string texPath);
-
+			graphics::Model *GetModel();
 
 		private:
-				std::string m_ModelPath;
+				graphics::Renderable	m_Renderable;
+				graphics::Model			*m_Model;
+				std::string				m_ModelPath;
 		};
 
 		class GameObject : public Object, gui::Gui
@@ -67,7 +68,7 @@ namespace md
 			void Render(mdGraphics::Shader *shader);
 
 			physics::Transform transform;
-			Graphics graphics;
+			Graphics *graphics;
 
 		protected:
 			void RenderGUI();

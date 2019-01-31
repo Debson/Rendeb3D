@@ -1,4 +1,4 @@
-#include <gl/gl3w.h>
+#include <glad/glad.h>
 
 #include <iostream>
 #include <fstream>
@@ -64,12 +64,12 @@ namespace engine
 
 		struct BoneInfo
 		{
-			glm::mat4 boneOffset;
-			glm::mat4 finalTransform;
+			aiMatrix4x4 boneOffset;
+			aiMatrix4x4 finalTransform;
 			std::string name;
 			u32 index;
 
-			BoneInfo() : boneOffset(glm::mat4()), finalTransform(glm::mat4()) { }
+			BoneInfo() : boneOffset(aiMatrix4x4()), finalTransform(aiMatrix4x4()) { }
 		};
 
 

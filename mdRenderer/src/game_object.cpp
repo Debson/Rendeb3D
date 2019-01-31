@@ -9,21 +9,30 @@ namespace md
 
 	engine::GameObject::GameObject() { }
 
-	engine::GameObject::GameObject(std::string name, graphics::Type type) : Object(name), graphics(type) { }
+	engine::GameObject::GameObject(std::string name, graphics::Type type) : Object(name)
+	{ 
+		graphics = new Graphics(type);
+	}
 
-	engine::GameObject::GameObject(std::string name, std::string path) : Object(name), graphics(name, path) { }
+	engine::GameObject::GameObject(std::string name, std::string path) : Object(name) 
+	{ 
+		graphics = new Graphics(name, path);
+	}
 
-	engine::GameObject::~GameObject() { }
+	engine::GameObject::~GameObject() 
+	{ 
+		delete graphics;
+	}
 
 	void engine::GameObject::Render(mdGraphics::Shader *shader)
 	{
 		shader->use();
-		transform.matrixModel = glm::mat4();
+		transform.matrixModel = glm::mat4(1.f);
 		transform.updateMatrices(transform.matrixModel);
 		shader->UpdateMatrices();
 		shader->setMat4("model", transform.matrixModel);
 
-		graphics.Render(shader);
+		graphics->Render(shader);
 
 		RenderGUI();
 	}

@@ -1,7 +1,7 @@
 #include "gui.h"
 
 
-#include <GL/gl3w.h>
+#include <glad/glad.h>
 
 
 namespace md

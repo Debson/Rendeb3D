@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include <GL/gl3w.h>
+#include <glad/glad.h>
 
 #include "camera.h"
 
@@ -53,15 +53,15 @@ namespace md
 			public:
 
 				Renderable();
-				Renderable(std::string);
-				virtual ~Renderable();
+				//Renderable(std::string);
+				//virtual ~Renderable();
 
 				void Draw();
 				void InitializeFromVertices();
 
-			protected:
 				Type m_Type;
 				GLuint m_Texture;
+			protected:
 
 			private:
 				void InitializeCube();

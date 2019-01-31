@@ -8,6 +8,10 @@
 #include "interface.h"
 #include "conf.h"
 
+md::Scene::~Scene()
+{
+	delete myModel;
+}
 
 void md::Scene::OnWindowOpen()
 {
@@ -16,7 +20,6 @@ void md::Scene::OnWindowOpen()
 	m_Camera = mdGraphics::Camera(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT), glm::vec3(0.f, 0.f, 3.f));
 	mdGraphics::Renderer::SetCamera(&m_Camera);
 	m_DefaultShader = mdGraphics::Shader("shaders//default.vert", "shaders//default.frag");
-	
 	/*s32 index = 0;
 	for (auto & i : myGameObj)
 	{
@@ -30,13 +33,21 @@ void md::Scene::OnWindowOpen()
 	myGameObj[0].transform.Rotate(glm::vec3(1.f, 0.f, 1.f), 45.f);
 	myGameObj[3].transform.Rotate(glm::vec3(0.f, 1.f, 0.f), 45.f);*/
 
+	//myModel = new engine::GameObject("face", "assets//xbot@Running.fbx");
+	myModel = new engine::GameObject("face", "assets//Samba.fbx");
+	m_Animator = engine::Animator(myModel);
+	m_Animator.AddAnimation("Goalkepper", "assets//Goalkeeper.fbx");
+	m_Animator.AddAnimation("Header", "assets//Header.fbx");
 
-	//myModel = engine::GameObject("face", "assets//head.obj");
+	m_Animator.PlayAnimation("Goalkepper");
+
+	//myModel->AddAnimation("test2", "assets//Header.fbx");
+	//myModel = new engine::GameObject("face", "assets//Header.dae");
 	//myModel = engine::GameObject("nanosuit", "assets//skeletal//skeletal.md5mesh");
-	myModel = engine::GameObject("skeletal", "assets//Character Running.dae");
-	myModel.transform.position.x -= 5.f;
-	myModel.transform.localScale = glm::vec3(0.1f);
-	myModel.transform.Rotate(-90.f, 0.f, 0.f);
+	//myModel = engine::GameObject("cube", engine::graphics::Type::tCube);
+	myModel->transform.position.x = 0.f;
+	myModel->transform.localScale = glm::vec3(0.01f);
+	//myModel->transform.Rotate(-90.f, 0.f, 0.f);
 
 	//myModel = engine::GameObject("rabbit", "assets//skeletal//skeletal.md5mesh");
 
@@ -64,7 +75,7 @@ void md::Scene::OnRealtimeUpdate()
 
 void md::Scene::OnRealtimeRender()
 {
-	glClearColor(0.f, 1.f, 0.f, 1.f);
+	glClearColor(1.f, 1.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	m_Gui.RenderGUI();
@@ -107,9 +118,8 @@ void md::Scene::RenderScene()
 	{
 		i.Render(&m_DefaultShader);
 	}*/
-
-	myModel.Render(&m_DefaultShader);
 	
+	myModel->Render(&m_DefaultShader);
 
 }
 

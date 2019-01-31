@@ -6,7 +6,7 @@
 
 namespace md
 {
-	mdGraphics::Shader::Shader() { }
+	mdGraphics::Shader::Shader() { std::cout << "graphics\n"; }
 
 	mdGraphics::Shader::Shader(const GLchar *vertexPath, const GLchar *fragmentPath, const GLchar *geometryPath) : mdShader(vertexPath, fragmentPath, geometryPath)
 	{
@@ -44,9 +44,9 @@ namespace md
 
 	mdGraphics::Renderable::Renderable() : m_Texture(0) { }
 
-	mdGraphics::Renderable::Renderable(std::string a) : m_Texture(0) { }
+	//mdGraphics::Renderable::Renderable(std::string a) : m_Texture(0) { }
 
-	mdGraphics::Renderable::~Renderable() { }
+	//mdGraphics::Renderable::~Renderable() { }
 
 	void mdGraphics::Renderable::InitializeFromVertices()
 	{

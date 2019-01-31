@@ -16,7 +16,7 @@ namespace md
 			{
 			public:
 				Transform();
-				virtual ~Transform();
+				//virtual ~Transform();
 
 				glm::vec3 position;
 				glm::vec3 localScale;
