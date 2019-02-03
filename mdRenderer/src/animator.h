@@ -16,6 +16,7 @@ namespace md
 			Animator(GameObject *obj);
 
 			void AddAnimation(std::string const &name, std::string const &path) const;
+			void AddAnimation(std::string const &name, std::string const &path, b8 hasExitTime, f32 transDuration) const;
 			void PlayAnimation(std::string const &name) const;
 
 		private:

@@ -28,12 +28,12 @@ namespace md
 	engine::Graphics::Graphics(std::string name, std::string path)
 	{
 		m_Renderable.m_Type = graphics::Type::tModel;
-		m_Model = new graphics::Model(path);
+		m_ModelController = new graphics::ModelController(path);
 	}
 
 	engine::Graphics::~Graphics() 
 	{ 
-		delete m_Model;
+		delete m_ModelController;
 	}
 
 	void engine::Graphics::Render(mdGraphics::Shader *shader)
@@ -44,20 +44,20 @@ namespace md
 		
 		if (m_Renderable.m_Type == graphics::Type::tModel)
 		{
-			if (m_Model->m_hasBones)
+			if (m_ModelController->IsAnimated())
 			{
-				f64 runningTime = time::Time();
+				f64 runningTime = time::CurrentTime();
 				//std::cout << runningTime << std::endl;
 
 				std::vector<glm::mat4> transforms;
-				this->m_Model->BoneTransform(runningTime, transforms);
+				m_ModelController->AnimateBones(runningTime, transforms);
 
 				for (u32 i = 0; i < transforms.size(); i++)
 				{
 					shader->setMat4("gBones[" + std::to_string(i) + "]", transforms[i]);
 				}
 			}
-			m_Model->DrawModel(shader);
+			m_ModelController->DrawModel(shader);
 		}
 		else
 			m_Renderable.Draw();
@@ -68,9 +68,9 @@ namespace md
 		m_Renderable.m_Texture = tex;
 	}
 
-	engine::graphics::Model *engine::Graphics::GetModel()
+	engine::graphics::ModelController *engine::Graphics::GetModelController()
 	{
-		return m_Model;
+		return m_ModelController;
 	}
 
 	void engine::Graphics::ApplyTexture(std::string texPath)

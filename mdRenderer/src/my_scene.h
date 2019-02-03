@@ -1,10 +1,7 @@
 #ifndef MY_SCENE_H
 #define MY_SCENE_H
 
-#include "camera.h"
-#include "app_handler_interface.h"
-#include "objects.h"
-#include "animator.h"
+#include "md_renderer_kit.h"
 
 namespace md
 {
@@ -24,7 +21,6 @@ namespace md
 		void RenderScene();
 		void UpdateScene();
 
-		mdGraphics::Shader m_DefaultShader;
 		gui::Gui m_Gui;
 		mdGraphics::Camera m_Camera;
 		engine::Animator m_Animator;

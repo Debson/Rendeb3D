@@ -9,7 +9,7 @@
 #include "graphics.h"
 #include "physics.h"
 #include "gui.h"
-#include "model.h"
+#include "model_controller.h"
 
 
 namespace md
@@ -49,12 +49,12 @@ namespace md
 			virtual void Render(mdGraphics::Shader *shader);
 			virtual void ApplyTexture(GLuint);
 			virtual void ApplyTexture(std::string texPath);
-			graphics::Model *GetModel();
+			graphics::ModelController *GetModelController();
 
 		private:
-				graphics::Renderable	m_Renderable;
-				graphics::Model			*m_Model;
-				std::string				m_ModelPath;
+				graphics::Renderable		m_Renderable;
+				graphics::ModelController	*m_ModelController;
+				std::string					m_ModelPath;
 		};
 
 		class GameObject : public Object, gui::Gui

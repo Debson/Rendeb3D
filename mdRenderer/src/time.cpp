@@ -9,7 +9,7 @@ namespace md
 		f64 DeltaTime;
 	}
 
-	f64 time::Time()
+	f64 time::CurrentTime()
 	{
 		return SDL_GetTicks() / 1000.0;
 	}

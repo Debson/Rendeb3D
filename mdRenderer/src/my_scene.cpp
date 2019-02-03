@@ -2,11 +2,6 @@
 
 #include <iostream>
 
-#include "realtime_app.h"
-#include "input.h"
-#include "time.h"
-#include "interface.h"
-#include "conf.h"
 
 md::Scene::~Scene()
 {
@@ -19,7 +14,6 @@ void md::Scene::OnWindowOpen()
 	SetRelativeMouseMode(SDL_TRUE);
 	m_Camera = mdGraphics::Camera(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT), glm::vec3(0.f, 0.f, 3.f));
 	mdGraphics::Renderer::SetCamera(&m_Camera);
-	m_DefaultShader = mdGraphics::Shader("shaders//default.vert", "shaders//default.frag");
 	/*s32 index = 0;
 	for (auto & i : myGameObj)
 	{
@@ -39,7 +33,8 @@ void md::Scene::OnWindowOpen()
 	m_Animator.AddAnimation("Goalkepper", "assets//Goalkeeper.fbx");
 	m_Animator.AddAnimation("Header", "assets//Header.fbx");
 
-	m_Animator.PlayAnimation("Goalkepper");
+	m_Animator.PlayAnimation("Header");
+
 
 	//myModel->AddAnimation("test2", "assets//Header.fbx");
 	//myModel = new engine::GameObject("face", "assets//Header.dae");
@@ -96,20 +91,7 @@ void md::Scene::OnFinishFrame()
 
 void md::Scene::ProcessInput(SDL_Event *e)
 {
-	/*if(SDL_PollEvent(e) != 0)
-	{
-		switch (e->type)
-		{
-		case (SDL_MOUSEMOTION): {
-			
-			break;
-		}
-		case (SDL_KEYDOWN): {
-			
-			break;
-		}
-		}
-	}*/
+	
 }
 
 void md::Scene::RenderScene()
@@ -119,7 +101,7 @@ void md::Scene::RenderScene()
 		i.Render(&m_DefaultShader);
 	}*/
 	
-	myModel->Render(&m_DefaultShader);
+	myModel->Render(mdShaders::Model());
 
 }
 
@@ -127,6 +109,15 @@ void md::Scene::UpdateScene()
 {
 	/*myGameObj[3].transform.Rotate(glm::vec3(1.f, 0.f, 0.f), 0);
 	myGameObj[1].transform.Rotate(0, 0.f, time::DeltaTime * 60.f);*/
+	if (input::IsKeyPressed(input::KeyCode::R))
+	{
+		m_Animator.PlayAnimation("Goalkepper");
+	}
+
+	if (input::IsKeyPressed(input::KeyCode::E))
+	{
+		m_Animator.PlayAnimation("Header");
+	}
 }
 
 

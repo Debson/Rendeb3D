@@ -9,6 +9,7 @@
 #include "time.h"
 #include "conf.h"
 #include "gui.h"
+#include "shader_manager.h"
 
 namespace md
 {
@@ -54,6 +55,8 @@ namespace md
 		applicationHandler.SetupSDLWindow(mWindow);
 		applicationHandler.OnWindowOpen();
 
+		engine::shaders::Init();
+
 		isRunning = true;
 	}
 
@@ -67,7 +70,7 @@ namespace md
 			applicationHandler.OnNewFrame();
 			OnNewFrame();
 
-			currentFrame = time::Time();
+			currentFrame = time::CurrentTime();
 			time::DeltaTime = currentFrame - previousFrame;
 			previousFrame = currentFrame;
 

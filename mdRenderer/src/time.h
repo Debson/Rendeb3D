@@ -10,7 +10,7 @@ namespace md
 		extern f64 DeltaTime;
 
 		// Returns time from start of the program in sec
-		f64 Time();
+		f64 CurrentTime();
 
 		class Timer
 		{

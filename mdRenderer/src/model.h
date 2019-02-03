@@ -24,6 +24,7 @@
 #include "mesh.h"
 #include "types.h"
 #include "math.h"
+#include "time.h"
 
 #include "md_load_texture.h"
 
@@ -35,19 +36,33 @@ namespace engine
 	{
 		typedef std::vector<Texture> Textures;
 		
+
+		/*	It must contain information about animation's length(in ticks), 
+			current animation time(in ticks).
+			Make it as a class. Create public methods like SetExitTime, GetAnimProgression, 
+			
+		*/
+
 		struct anim_t
 		{
+			anim_t() : mTimeElapsed(0.f), mStartTime(0.f), mHasExitTime(true), mScene(nullptr) { }
+			void Reset() { mTimeElapsed = 0.f; mStartTime = 0.f; }
+
 			Assimp::Importer mImporter;
 			const aiScene *mScene;
+
+			f64 mTimeElapsed;	// Current time of animation in ticks
+			f64 mStartTime;		// Time when animation started in ticks
+			b8 mHasExitTime;	// 
+			f32 mTransDuration;	//
+
 		};
 
 		typedef std::map<std::string, anim_t*> Animations;
-
-
+		
 		class Model
 		{
 		public:
-			Model() { std::cout << "Model\n"; }
 
 			Model(std::string const &path, bool gamma = false) :
 				m_BoneCount(0), m_VerticesCount(0), m_hasBones(false), m_Path(path)
@@ -56,7 +71,7 @@ namespace engine
 				std::cout << "Model\n";
 			}
 			
-			~Model() 
+			virtual ~Model() 
 			{ 
 				for (auto & anim : animationsLoaded)
 				{
@@ -64,7 +79,14 @@ namespace engine
 				}
 			}
 
-			void LoadAnimation(std::string const &name, std::string const &path)
+			void Draw(Shader *shader)
+			{
+				for (auto & i : meshes)
+					i.Draw(shader);
+			}
+
+		protected:
+			void loadAnim(std::string const &name, std::string const &path)
 			{
 				anim_t *anim = new anim_t();
 				anim->mScene = anim->mImporter.ReadFile(path, aiProcess_Triangulate
@@ -97,25 +119,6 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
-				/*Assimp::Importer importer;
-				m_Scene = importer.ReadFile(m_Path, aiProcess_Triangulate
-					| aiProcess_GenSmoothNormals
-					| aiProcess_FlipUVs
-					| aiProcess_JoinIdenticalVertices);
-
-
-				if (!m_Scene || m_Scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_Scene->mRootNode)
-				{
-					std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
-					return;
-				}*/
-
-				/*f32 ticksPerSec = (f32)(m_Scene->mAnimations[0]->mTicksPerSecond != 0 ? m_Scene->mAnimations[0]->mTicksPerSecond : 25.f);
-				f32 timeInTicks = timeInSeconds * ticksPerSec;
-				f32 animTime = fmod(timeInTicks, (f32)m_Scene->mAnimations[0]->mDuration);
-
-				ReadNodeHierarchy(animTime, m_Scene->mRootNode, identity);*/
-
 				f32 ticksPerSec = (f32)(m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond != 0 ? m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond : 25.f);
 				f32 timeInTicks = timeInSeconds * ticksPerSec;
 				f32 animTime = fmod(timeInTicks, (f32)m_CurrentScene->mScene->mAnimations[0]->mDuration);
@@ -123,18 +126,14 @@ namespace engine
 				ReadNodeHierarchy(animTime, m_CurrentScene->mScene->mRootNode, identity);
 
 				transforms.resize(bonesInfo.size());
-
 				for (u32 i = 0; i < bonesInfo.size(); i++)
 				{
 					transforms[i] = mdEngine::math::aiMatrix4x4ToGlm(bonesInfo[i].finalTransform);
 				}
 			}
 
-			void DrawModel(Shader *shader)
-			{
-				for (auto & i : meshes)
-					i.Draw(shader);
-			}
+
+			// Change properties's names to be in accordance with naming convention
 
 			Textures texturesLoaded;
 			Animations animationsLoaded;
@@ -147,8 +146,8 @@ namespace engine
 			// Create get methods 
 			b8 m_hasBones;
 			std::string m_Path;
-		protected:
 
+		private:
 			u32 FindPosition(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
 				for (u32 i = 0; i < nodeAnim->mNumPositionKeys - 1; i++)
@@ -355,14 +354,9 @@ namespace engine
 				return nullptr;
 			}
 
-		private:	
 			u32 m_BoneCount;
 			u32 m_VerticesCount;
 			anim_t *m_CurrentScene;
-
-			/*const aiScene *m_Scene;
-			Assimp::Importer m_Importer;*/
-
 
 			void loadModel(std::string const &path)
 			{
