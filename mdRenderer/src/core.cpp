@@ -70,7 +70,7 @@ namespace md
 			applicationHandler.OnNewFrame();
 			OnNewFrame();
 
-			currentFrame = time::CurrentTime();
+			currentFrame = time::Time();
 			time::DeltaTime = currentFrame - previousFrame;
 			previousFrame = currentFrame;
 

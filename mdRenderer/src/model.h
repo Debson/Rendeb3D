@@ -53,7 +53,8 @@ namespace engine
 
 			f64 mTimeElapsed;	// Current time of animation in ticks
 			f64 mStartTime;		// Time when animation started in ticks
-			b8 mHasExitTime;	// 
+			b8 mHasExitTime;	//
+			f32 mDuration;
 			f32 mTransDuration;	//
 
 		};
@@ -100,6 +101,9 @@ namespace engine
 					return;
 				}
 
+				anim->mHasExitTime = true;
+				anim->mDuration = anim->mScene->mAnimations[0]->mDuration;
+				
 				animationsLoaded.insert(std::make_pair(name, anim));
 
 				/*if (name == "Header")
@@ -109,7 +113,10 @@ namespace engine
 			void ChangeAnimation(std::string const &name)
 			{
 				if (animationsLoaded.find(name) != animationsLoaded.end())
+				{
 					m_CurrentScene = animationsLoaded[name];
+					m_CurrentScene->mStartTime = time::Time();
+				}
 				else
 					// Add md_error
 					std::cout << "ERROR:: Couldn't find animation: " + name << std::endl;
@@ -119,11 +126,14 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
+
+				updateCurrentAnimation(timeInSeconds);
 				f32 ticksPerSec = (f32)(m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond != 0 ? m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond : 25.f);
 				f32 timeInTicks = timeInSeconds * ticksPerSec;
 				f32 animTime = fmod(timeInTicks, (f32)m_CurrentScene->mScene->mAnimations[0]->mDuration);
 
-				ReadNodeHierarchy(animTime, m_CurrentScene->mScene->mRootNode, identity);
+				//ReadNodeHierarchy(animTime, m_CurrentScene->mScene->mRootNode, identity);
+				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
 
 				transforms.resize(bonesInfo.size());
 				for (u32 i = 0; i < bonesInfo.size(); i++)
@@ -148,6 +158,22 @@ namespace engine
 			std::string m_Path;
 
 		private:
+
+			void updateCurrentAnimation(f64 time)
+			{
+				if (m_CurrentScene->mTimeElapsed > m_CurrentScene->mDuration)
+				{
+					m_CurrentScene->Reset();
+					m_CurrentScene = animationsLoaded["Start"];
+				}
+				else
+				{
+					m_CurrentScene->mTimeElapsed = time::Time() - m_CurrentScene->mStartTime;
+					m_CurrentScene->mTimeElapsed *= m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond;
+				}
+				
+			}
+
 			u32 FindPosition(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
 				for (u32 i = 0; i < nodeAnim->mNumPositionKeys - 1; i++)
@@ -360,22 +386,7 @@ namespace engine
 
 			void loadModel(std::string const &path)
 			{
-				anim_t *first = new anim_t();
-				first->mScene = first->mImporter.ReadFile(path, aiProcess_Triangulate
-															  | aiProcess_GenSmoothNormals
-															  | aiProcess_FlipUVs
-															  | aiProcess_JoinIdenticalVertices);
-
-				if (!first->mScene || first->mScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !first->mScene->mRootNode)
-				{
-					std::cout << "ERROR::ASSIMP:: " << first->mImporter.GetErrorString() << std::endl;
-					return;
-				}
-
-				// Save default animation on model load
-				animationsLoaded.insert(std::make_pair("Start", first));
-
-				// Set default animation
+				loadAnim("Start", path);
 				m_CurrentScene = animationsLoaded["Start"];
 
 				dir = path.substr(0, path.find_last_of('/'));

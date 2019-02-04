@@ -14,7 +14,7 @@ namespace engine
 	void shaders::Init()
 	{
 		defaultShader	= mdGraphics::Shader("shaders//default.vert", "shaders//default.frag");
-		modelShader = mdGraphics::Shader("shaders//default.vert", "shaders//default.frag");
+		modelShader		= mdGraphics::Shader("shaders//model_shader.vert", "shaders//default.frag");
 	}
 
 	graphics::Shader *shaders::Default()

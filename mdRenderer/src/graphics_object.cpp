@@ -46,7 +46,7 @@ namespace md
 		{
 			if (m_ModelController->IsAnimated())
 			{
-				f64 runningTime = time::CurrentTime();
+				f64 runningTime = time::Time();
 				//std::cout << runningTime << std::endl;
 
 				std::vector<glm::mat4> transforms;
