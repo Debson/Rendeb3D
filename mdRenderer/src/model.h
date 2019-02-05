@@ -30,6 +30,8 @@
 
 #include "md_load_texture.h"
 
+//#define DEBUG
+
 namespace md
 {
 namespace engine
@@ -165,9 +167,10 @@ namespace engine
 					m_PreviousScene = m_CurrentScene;
 					m_CurrentScene = m_AnimationsLoaded[name];
 					m_CurrentScene->Reset();
-					m_CurrentTransition = m_PreviousScene->FindTransition(m_CurrentScene->mName);
+					if(m_PreviousScene->mName != m_CurrentScene->mName)
+						m_CurrentTransition = m_PreviousScene->FindTransition(m_CurrentScene->mName);
 					assert(m_CurrentScene != nullptr);
-					assert(m_CurrentTransition != nullptr);
+					//assert(m_CurrentTransition != nullptr);
 				}
 				else
 					// Add md_error
@@ -178,7 +181,7 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
-				updateCurrentAnimation(timeInSeconds);
+				updateCurrentAnimation();
 				
 				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
 
@@ -206,11 +209,13 @@ namespace engine
 
 		private:
 
-			void updateCurrentAnimation(f64 time)
+			void updateCurrentAnimation()
 			{
-				if (m_CurrentScene->mTimeElapsed > m_CurrentScene->mDuration)
+				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
+#ifndef DEBUG
 					ChangeAnimation("Start");
+#endif
 				}
 				else
 				{
@@ -221,6 +226,7 @@ namespace engine
 
 			void updateCurrentTransition()
 			{
+#ifndef DEBUG
 				if (m_CurrentTransition->mTimeElapsed > m_CurrentTransition->mDuration)
 				{
 					m_CurrentTransition = nullptr;
@@ -228,12 +234,41 @@ namespace engine
 				}
 				else
 				{
+					
 					m_CurrentTransition->mTimeElapsed += time::DeltaTime;
 					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
 					if (m_PreviousScene->mInterp > 1.f)
 						m_PreviousScene->mInterp = 1.f;
-					std::cout << m_PreviousScene->mInterp << std::endl;
 				}
+#else
+
+				static bool change = false;
+				
+
+				if (change)
+				{
+					m_CurrentTransition->mTimeElapsed += time::DeltaTime;
+					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
+					if (m_PreviousScene->mInterp > 1.f)
+					{
+						m_PreviousScene->mInterp = 1.f;
+						change = !change;
+					}
+				}
+				else
+				{
+					m_CurrentTransition->mTimeElapsed -= time::DeltaTime;
+					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
+					if (m_PreviousScene->mInterp < 0.f)
+					{
+						m_PreviousScene->mInterp = 0.f;
+						change = !change;
+					}
+				}
+			
+#endif
+
+
 			}
 			
 
@@ -280,14 +315,15 @@ namespace engine
 			}
 
 			/****************************/
+#ifndef DEBUG
 			aiMatrix4x4 CalcInterpolatedPositionTransition(f32 animTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
 			{
 
 				aiVector3D translation;
 
-				if (nodeAnim->mNumPositionKeys == 1)
+				if (prevNodeAnim->mNumPositionKeys == 1)
 				{
-					translation = nodeAnim->mPositionKeys[0].mValue;
+					translation = prevNodeAnim->mPositionKeys[0].mValue;
 				}
 				else
 				{
@@ -331,9 +367,9 @@ namespace engine
 			{
 				aiQuaternion rotation;
 
-				if (nodeAnim->mNumRotationKeys == 1)
+				if (prevNodeAnim->mNumRotationKeys == 1)
 				{
-					rotation = nodeAnim->mRotationKeys[0].mValue;
+					rotation = prevNodeAnim->mRotationKeys[0].mValue;
 				}
 				else
 				{
@@ -378,9 +414,9 @@ namespace engine
 			{
 				aiVector3D scale;
 
-				if (nodeAnim->mNumScalingKeys == 1)
+				if (prevNodeAnim->mNumScalingKeys == 1)
 				{
-					scale = nodeAnim->mScalingKeys[0].mValue;
+					scale = prevNodeAnim->mScalingKeys[0].mValue;
 				}
 				else
 				{
@@ -419,6 +455,148 @@ namespace engine
 				aiMatrix4x4::Scaling(scale, mat);
 				return mat;
 			}
+#else
+			
+			aiMatrix4x4 CalcInterpolatedPositionTransition(f32 animTime, f32 prevAnimTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
+			{
+
+				aiVector3D translation;
+
+				if (prevNodeAnim->mNumPositionKeys == 1)
+				{
+					translation = prevNodeAnim->mPositionKeys[0].mValue;
+				}
+				else
+				{
+					u32 frameIndex = 0;
+					for (uint32_t i = 0; i < nodeAnim->mNumPositionKeys - 1; i++)
+					{
+						if (animTime < (float)nodeAnim->mPositionKeys[i + 1].mTime)
+						{
+							frameIndex = i;
+							break;
+						}
+					}
+
+					u32 prevFrameIndex = 0;
+					for (uint32_t i = 0; i < prevNodeAnim->mNumPositionKeys - 1; i++)
+					{
+						if (prevAnimTime < (float)prevNodeAnim->mPositionKeys[i + 1].mTime)
+						{
+							prevFrameIndex = i;
+							break;
+						}
+					}
+
+					aiVectorKey prevFrame = prevNodeAnim->mPositionKeys[prevFrameIndex];;
+					aiVectorKey nextFrame = nodeAnim->mPositionKeys[frameIndex];;
+
+					const aiVector3D& start = prevFrame.mValue;
+					const aiVector3D& end = nextFrame.mValue;
+
+					translation = (start + m_PreviousScene->mInterp * (end - start));
+
+					//translation = m_PreviousScene->mCurrTrans;
+				}
+
+				aiMatrix4x4 mat;
+				aiMatrix4x4::Translation(translation, mat);
+				return mat;
+			}
+
+			aiMatrix4x4 CalcInterploatedRotationTransition(f32 animTime, f32 prevAnimTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
+			{
+				aiQuaternion rotation;
+
+				if (prevNodeAnim->mNumRotationKeys == 1)
+				{
+					rotation = prevNodeAnim->mRotationKeys[0].mValue;
+				}
+				else
+				{
+					uint32_t frameIndex = 0;
+					for (uint32_t i = 0; i < nodeAnim->mNumRotationKeys - 1; i++)
+					{
+						if (animTime < (float)nodeAnim->mRotationKeys[i + 1].mTime)
+						{
+							frameIndex = i;
+							break;
+						}
+					}
+
+					u32 prevFrameIndex = 0;
+					for (uint32_t i = 0; i < prevNodeAnim->mNumRotationKeys - 1; i++)
+					{
+						if (prevAnimTime < (float)prevNodeAnim->mRotationKeys[i + 1].mTime)
+						{
+							prevFrameIndex = i;
+							break;
+						}
+					}
+
+					aiQuatKey prevFrame = prevNodeAnim->mRotationKeys[prevFrameIndex];;
+					aiQuatKey nextFrame = nodeAnim->mRotationKeys[frameIndex];
+
+
+					const aiQuaternion& start = prevFrame.mValue;
+					const aiQuaternion& end = nextFrame.mValue;
+
+					aiQuaternion::Interpolate(rotation, start, end, m_PreviousScene->mInterp);
+					rotation.Normalize();
+
+					//rotation = m_PreviousScene->mCurrRot;
+				}
+
+				aiMatrix4x4 mat(rotation.GetMatrix());
+				return mat;
+			}
+
+			aiMatrix4x4 CalcInterpolatedScalingTransition(f32 animTime, f32 prevAnimTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
+			{
+				aiVector3D scale;
+
+				if (prevNodeAnim->mNumScalingKeys == 1)
+				{
+					scale = prevNodeAnim->mScalingKeys[0].mValue;
+				}
+				else
+				{
+					uint32_t frameIndex = 0;
+					for (uint32_t i = 0; i < nodeAnim->mNumScalingKeys - 1; i++)
+					{
+						if (animTime < (float)nodeAnim->mScalingKeys[i + 1].mTime)
+						{
+							frameIndex = i;
+							break;
+						}
+					}
+
+					u32 prevFrameIndex = 0;
+					for (uint32_t i = 0; i < prevNodeAnim->mNumScalingKeys - 1; i++)
+					{
+						if (prevAnimTime < (float)prevNodeAnim->mScalingKeys[i + 1].mTime)
+						{
+							prevFrameIndex = i;
+							break;
+						}
+					}
+
+					aiVectorKey prevFrame = prevNodeAnim->mScalingKeys[prevFrameIndex];;
+					aiVectorKey nextFrame = nodeAnim->mScalingKeys[frameIndex];
+
+					const aiVector3D& start = prevFrame.mValue;
+					const aiVector3D& end = nextFrame.mValue;
+
+					scale = (start + m_PreviousScene->mInterp * (end - start));
+
+					//scale = m_PreviousScene->mCurrScale;
+				}
+
+				aiMatrix4x4 mat;
+				aiMatrix4x4::Scaling(scale, mat);
+				return mat;
+			}
+#endif
 			/***************************/
 
 
@@ -555,31 +733,37 @@ namespace engine
 				aiMatrix4x4 nodeTransformation = node->mTransformation;
 
 
-				if (nodeAnim && prevNodeAnim)
+				aiMatrix4x4 matScale;
+				aiMatrix4x4 matRotation;
+				aiMatrix4x4 matTranslation;
+#ifndef DEBUG
+				if (nodeAnim && prevNodeAnim && m_CurrentTransition)
+#endif
 				{
-					aiMatrix4x4 matScale;
-					aiMatrix4x4 matRotation;
-					aiMatrix4x4 matTranslation;
+#ifndef DEBUG
+						matScale = CalcInterpolatedScalingTransition(animTime, nodeAnim, prevNodeAnim);
 
-					if (m_CurrentTransition != nullptr)
-					{
+						matRotation = CalcInterploatedRotationTransition(animTime, nodeAnim, prevNodeAnim);
 
+						matTranslation = CalcInterpolatedPositionTransition(animTime, nodeAnim, prevNodeAnim);
 						updateCurrentTransition();
 
-						matScale = CalcInterpolatedScalingTransition(m_PreviousScene->mCurrTime, nodeAnim, prevNodeAnim);
+						nodeTransformation = matTranslation * matRotation * matScale;
+#else
 
-						matRotation = CalcInterploatedRotationTransition(m_PreviousScene->mCurrTime, nodeAnim, prevNodeAnim);
+						ImGui::Begin("TEST");
+						static float currAnimTime = 25;
+						static float prevAnimTime = 405;
+						ImGui::SliderFloat("currAnimTime", &currAnimTime, 0.f, 43.f);
+						ImGui::SameLine();
+						ImGui::SliderFloat("prevAnimTime", &prevAnimTime, 0.f, 500.f);
 
-						matTranslation = CalcInterpolatedPositionTransition(m_PreviousScene->mCurrTime, nodeAnim, prevNodeAnim);
-
-
-						/*float currAnimTime = 35;
-						float prevAnimTime = 105;
 						matScale = CalcInterpolatedScalingTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);
 
 						matRotation = CalcInterploatedRotationTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);
 
-						matTranslation = CalcInterpolatedPositionTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);*/
+						matTranslation = CalcInterpolatedPositionTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);
+						ImGui::End();
 
 						/*if (input::IsKeyDown(input::KeyCode::H))
 						{
@@ -597,19 +781,20 @@ namespace engine
 
 							matTranslation = CalcInterpolatedPosition(prevAnimTime, prevNodeAnim);
 						}*/
+#endif
+				}
+#ifndef DEBUG
+				else if(nodeAnim && m_CurrentTransition == nullptr)
+				{
+					matScale = CalcInterpolatedScaling(animTime, nodeAnim);
 
-					}
-					else
-					{
-						matScale = CalcInterpolatedScaling(animTime, nodeAnim);
+					matRotation = CalcInterploatedRotation(animTime, nodeAnim);
 
-						matRotation = CalcInterploatedRotation(animTime, nodeAnim);
-
-						matTranslation = CalcInterpolatedPosition(animTime, nodeAnim);
-					}
+					matTranslation = CalcInterpolatedPosition(animTime, nodeAnim);
 
 					nodeTransformation = matTranslation * matRotation * matScale;
 				}
+#endif
 
 				
 				aiMatrix4x4 globalTransformation = parentTransform * nodeTransformation;

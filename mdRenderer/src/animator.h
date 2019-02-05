@@ -17,7 +17,7 @@ namespace md
 
 			void AddAnimation(std::string const &name, std::string const &path) const;
 			void AddAnimation(std::string const &name, std::string const &path, b8 hasExitTime, f32 transDuration) const;
-			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time = 5.1f);
+			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time = 10.1f);
 			void PlayAnimation(std::string const &name) const;
 
 		private:
