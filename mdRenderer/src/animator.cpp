@@ -20,6 +20,12 @@ namespace md
 		m_Graphics->GetModelController()->SetTransitionDuration(name, transDuration);
 	}
 
+
+	void engine::Animator::AddTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time)
+	{
+		m_Graphics->GetModelController()->CreateTransition(firstAnim, secondAnim, time);
+	}
+
 	void engine::Animator::PlayAnimation(std::string const &name) const
 	{
 		m_Graphics->GetModelController()->SetCurrentAnimation(name);

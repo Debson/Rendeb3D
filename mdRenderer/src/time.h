@@ -12,6 +12,8 @@ namespace md
 		// Returns time from start of the program in sec
 		f64 Time();
 
+		f64 TimeTicks();
+
 		class Timer
 		{
 		public:

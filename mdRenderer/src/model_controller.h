@@ -23,6 +23,8 @@ namespace engine
 
 			void LoadAnimation(std::string const &name, std::string const &path);
 
+			void CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time);
+
 			void SetExitTransition(std::string const &name, b8 val);
 
 			void SetTransitionDuration(std::string const &name, f32 dur);

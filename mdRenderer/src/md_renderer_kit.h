@@ -6,7 +6,7 @@
 #include "objects.h"
 #include "animator.h"
 #include "realtime_app.h"
-#include "input.h"
+//#include "input.h"
 #include "time.h"
 #include "interface.h"
 #include "conf.h"

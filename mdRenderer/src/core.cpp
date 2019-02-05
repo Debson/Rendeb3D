@@ -29,6 +29,7 @@ namespace md
 		bool appClosing(false);
 		bool gasApplication(false);
 		bool isActiveWindow(false);
+		bool firstFrame(true);
 
 
 		float clean_color = 1.0f;
@@ -70,9 +71,14 @@ namespace md
 			applicationHandler.OnNewFrame();
 			OnNewFrame();
 
-			currentFrame = time::Time();
-			time::DeltaTime = currentFrame - previousFrame;
-			previousFrame = currentFrame;
+			if (firstFrame == false)
+			{
+				currentFrame = time::TimeTicks();
+				time::DeltaTime = currentFrame - previousFrame;
+				time::DeltaTime /= 1000.0;
+				previousFrame = currentFrame;
+			}
+			firstFrame = false;
 
 			applicationHandler.ProcessInput(&event);
 			ProcessInput(&event);

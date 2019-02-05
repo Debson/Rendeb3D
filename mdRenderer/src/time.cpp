@@ -14,6 +14,11 @@ namespace md
 		return SDL_GetTicks() / 1000.0;
 	}
 
+	f64 time::TimeTicks()
+	{
+		return SDL_GetTicks();
+	}
+
 
 	time::Timer::Timer() : m_StartTicks(0), m_TargetTime(0), m_Started(false), m_Finished(false), m_Initialized(false) { };
 

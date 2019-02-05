@@ -18,14 +18,19 @@ namespace engine
 		this->loadAnim(name, path);
 	}
 
+	void graphics::ModelController::CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time)
+	{
+		GetAnimation(firstAnim)->AddTransition(transition_t(secondAnim, time));
+	}
+
 	void graphics::ModelController::SetExitTransition(std::string const &name, b8 val)
 	{
-		animationsLoaded[name]->mHasExitTime = val;
+		m_AnimationsLoaded[name]->mHasExitTime = val;
 	}
 
 	void graphics::ModelController::SetTransitionDuration(std::string const &name, f32 dur)
 	{
-		animationsLoaded[name]->mTransDuration = dur;
+		//animationsLoaded[name]->mTransDuration = dur;
 	}
 
 	void graphics::ModelController::DrawModel(Shader *shader)
@@ -40,12 +45,12 @@ namespace engine
 
 	graphics::anim_t *graphics::ModelController::GetAnimation(std::string const &name)
 	{
-		return animationsLoaded[name];
+		return m_AnimationsLoaded[name];
 	}
 
 	b8 graphics::ModelController::IsAnimated()
 	{
-		return animationsLoaded.size() > 0;
+		return m_AnimationsLoaded.size() > 0;
 	}
 }
 }

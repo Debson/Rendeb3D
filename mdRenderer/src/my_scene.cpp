@@ -28,10 +28,12 @@ void md::Scene::OnWindowOpen()
 	myGameObj[3].transform.Rotate(glm::vec3(0.f, 1.f, 0.f), 45.f);*/
 
 	//myModel = new engine::GameObject("face", "assets//xbot@Running.fbx");
-	myModel = new engine::GameObject("face", "assets//Samba.fbx");
+	myModel = new engine::GameObject("face", "assets//Idle.fbx");
 	m_Animator = engine::Animator(myModel);
 	m_Animator.AddAnimation("Goalkepper", "assets//Goalkeeper.fbx");
 	m_Animator.AddAnimation("Header", "assets//Header.fbx");
+	m_Animator.AddTransition("Start", "Header");
+	m_Animator.AddTransition("Header", "Start");
 
 	m_Animator.PlayAnimation("Header");
 
