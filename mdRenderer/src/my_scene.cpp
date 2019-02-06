@@ -28,12 +28,15 @@ void md::Scene::OnWindowOpen()
 	myGameObj[3].transform.Rotate(glm::vec3(0.f, 1.f, 0.f), 45.f);*/
 
 	//myModel = new engine::GameObject("face", "assets//xbot@Running.fbx");
-	myModel = new engine::GameObject("face", "assets//dance.fbx");
+	myModel = new engine::GameObject("face", "assets//Idle.fbx");
 	m_Animator = engine::Animator(myModel);
 	m_Animator.AddAnimation("Goalkepper", "assets//Goalkeeper.fbx");
 	m_Animator.AddAnimation("Header", "assets//Header.fbx");
-	m_Animator.AddTransition("Start", "Header");
-	m_Animator.AddTransition("Header", "Start");
+	m_Animator.AddAnimation("Running", "assets//Running.fbx");
+
+	m_Animator.AddTransition("Start", "Header", 10.f, engine::Animator::TransitionType::BILATERAL);
+	m_Animator.AddTransition("Start", "Goalkepper", 10.f, engine::Animator::TransitionType::BILATERAL);
+	m_Animator.AddTransition("Start", "Running", 10.f, engine::Animator::TransitionType::BILATERAL);
 
 	m_Animator.PlayAnimation("Header");
 
@@ -118,7 +121,7 @@ void md::Scene::UpdateScene()
 
 	if (input::IsKeyPressed(input::KeyCode::E))
 	{
-		m_Animator.PlayAnimation("Header");
+		m_Animator.PlayAnimation("Running");
 	}
 }
 

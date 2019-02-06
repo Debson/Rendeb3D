@@ -15,9 +15,14 @@ namespace md
 			Animator();
 			Animator(GameObject *obj);
 
-			void AddAnimation(std::string const &name, std::string const &path) const;
-			void AddAnimation(std::string const &name, std::string const &path, b8 hasExitTime, f32 transDuration) const;
-			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time = 10.1f);
+			enum TransitionType
+			{
+				BILATERAL,
+				ONESIDED
+			};
+
+			void AddAnimation(std::string const &name, std::string const &path, b8 hasExitTime = true) const;
+			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time = 10.1f, TransitionType transType = ONESIDED);
 			void PlayAnimation(std::string const &name) const;
 
 		private:

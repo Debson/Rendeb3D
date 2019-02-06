@@ -26,7 +26,6 @@
 #include "types.h"
 #include "math.h"
 #include "time.h"
-#include "input.h"
 
 #include "md_load_texture.h"
 
@@ -40,13 +39,6 @@ namespace engine
 	{
 		typedef std::vector<Texture> Textures;
 		
-
-		/*	It must contain information about animation's length(in ticks), 
-			current animation time(in ticks).
-			Make it as a class. Create public methods like SetExitTime, GetAnimProgression, 
-			
-		*/
-
 		struct transition_t
 		{
 			transition_t(std::string const &nextAnimName, f32 transDur) : mNextAnimName(nextAnimName), 

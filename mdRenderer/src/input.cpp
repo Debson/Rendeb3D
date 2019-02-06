@@ -5,6 +5,7 @@ namespace md
 	static bool mdNeedsInitializaiotn(true);
 	static bool mdCurrentKeyStatus[input::KeyCode::count];
 	static bool mdPreviousKeyStatus[input::KeyCode::count];
+	static std::vector<input::axis_t> mdAxisContainer;
 
 	static int mdCurrentMouseX, mdCurrentMouseY;
 	static int mdRelativeMouseX, mdRelativeMouseY;
@@ -14,6 +15,8 @@ namespace md
 	static int mdCurrentScrollX, mdCurrentScrollY;
 	static int mdPreviousScrollX, mdPreviousScrollY;
 
+
+	input::axis_t::axis_t() : mDead(0.0001f), mGravity(3.f), mSensitivity(3.f) { }
 
 	bool input::IsKeyPressed(const KeyCode& key)
 	{
@@ -48,6 +51,21 @@ namespace md
 	bool input::IsScrollActive()
 	{
 		return mdIsMouseScrollActive == true ? true : false;
+	}
+
+	float input::GetAxis(std::string const &axis)
+	{
+
+	}
+
+	void input::AddAxis(const axis_t &axis)
+	{
+
+	}
+
+	void input::FindAxis(std::string const &axis)
+	{
+
 	}
 
 	glm::vec2 input::GetMousePosition()
@@ -85,6 +103,22 @@ namespace md
 	}
 
 	/* ******* INPUT CONFIGURATION ******** */
+
+	void inputconf::Init()
+	{
+		input::axis_t vertical;
+		vertical.mName = "Vertical";
+		vertical.mPositiveButton = input::KeyCode::W;
+		vertical.mNegativeButton = input::KeyCode::S;
+		input::AddAxis(vertical);
+
+		input::axis_t horizontal;
+		horizontal.mName = "horizontal";
+		horizontal.mPositiveButton = input::KeyCode::D;
+		horizontal.mNegativeButton = input::KeyCode::A;
+		input::AddAxis(horizontal);
+	}
+
 	void inputconf::OnPressKey(const input::KeyCode& key)
 	{
 		mdCurrentKeyStatus[key] = true;
