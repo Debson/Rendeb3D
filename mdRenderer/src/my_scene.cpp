@@ -39,6 +39,9 @@ void md::Scene::OnWindowOpen()
 	m_Animator.AddTransition("Start", "Running", 10.f, engine::Animator::TransitionType::BILATERAL);
 
 	m_Animator.PlayAnimation("Header");
+	m_Animator.AddParameter("Speed");
+
+	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
 
 
 	//myModel->AddAnimation("test2", "assets//Header.fbx");
@@ -123,6 +126,11 @@ void md::Scene::UpdateScene()
 	{
 		m_Animator.PlayAnimation("Running");
 	}
+
+	float speed = input::GetAxis("vertical");
+	m_Animator.SetFloat("Speed", speed);
+	//std::cout << speed << std::endl;
+
 }
 
 

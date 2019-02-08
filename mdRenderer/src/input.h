@@ -280,7 +280,7 @@ namespace md
 
 		float GetAxis(std::string const &axis);
 		void AddAxis(const axis_t &axis);
-		void FindAxis(std::string const &axis);
+		axis_t *FindAxis(std::string const &axis);
 
 		glm::vec2 GetMousePosition();
 		void GetMousePosition(int *x, int *y);

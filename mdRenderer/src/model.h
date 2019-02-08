@@ -26,6 +26,7 @@
 #include "types.h"
 #include "math.h"
 #include "time.h"
+#include "graphics_types.h"
 
 #include "md_load_texture.h"
 
@@ -37,18 +38,64 @@ namespace engine
 {
 	namespace graphics
 	{
-		typedef std::vector<Texture> Textures;
+		typedef std::vector<Texture>		Textures;
 		
+		
+		struct param_t
+		{
+			template <class T>
+			T getValue(u32 type)
+			{
+				T val;
+				switch (type)
+				{
+				case MD_INT: {
+					val = mVal.i;
+					break;
+				}
+				case MD_FLOAT: {
+					val = mVal.i;
+					break;
+				}
+				case MD_BOOLEAN: {
+					val = mVal.i;
+					break;
+				}
+				}
+
+				return val;
+			}
+
+			std::string mName;
+			type_t mVal;
+		};
+
+		struct condition_t
+		{
+			param_t *mParam;
+			u32 mConditionType;
+			type_t mConditionVal;
+			u32 mConditionValType;
+		};
+
 		struct transition_t
 		{
 			transition_t(std::string const &nextAnimName, f32 transDur) : mNextAnimName(nextAnimName), 
 																		  mDuration(transDur), 
 																		  mTimeElapsed(0.f) { }
 			void Reset() { mTimeElapsed = 0.f; }
+			void SetCondition(param_t *p, u32 type, type_t conditionVal, u32 conditionValType)
+			{
+				mCondition.mParam = p;
+				mCondition.mConditionType = type;
+				mCondition.mConditionVal = conditionVal;
+				mCondition.mConditionValType = conditionValType;
+			}
 
 			std::string mNextAnimName;
 			f32 mDuration;
 			f32 mTimeElapsed;
+			condition_t mCondition;
 		};
 
 		struct anim_t
@@ -92,7 +139,6 @@ namespace engine
 			f32 mCurrTime;
 			f32 mInterp;
 
-		private:
 			std::vector<transition_t> mTransitions;
 		};
 
@@ -124,6 +170,9 @@ namespace engine
 			}
 
 		protected:
+			typedef std::vector<param_t> Parameters;
+
+			Parameters m_Parameters;
 			std::vector<transition_t> m_TranstionStack;
 
 
@@ -173,6 +222,7 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
+				checkTransitionConditions();
 				updateCurrentAnimation();
 				
 				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
@@ -200,6 +250,58 @@ namespace engine
 			std::string m_Path;
 
 		private:
+
+			void checkTransitionConditions()
+			{
+				for (auto & i : m_CurrentScene->mTransitions)
+				{
+					b8 playAnim = false;
+					switch (i.mCondition.mConditionType)
+					{
+					case MD_GREATER: {
+						switch (i.mCondition.mConditionValType)
+						{
+						case MD_INT: {
+							if (i.mCondition.mParam->mVal.i > i.mCondition.mConditionVal.i)
+								playAnim = true;
+						break;
+						}
+						case MD_FLOAT: {
+							if (i.mCondition.mParam->mVal.f > i.mCondition.mConditionVal.f)
+								playAnim = true;
+							break;
+						}
+						}
+						break;
+					}
+					case MD_LESS: {
+						switch (i.mCondition.mConditionValType)
+						{
+						case MD_INT: {
+							if (i.mCondition.mParam->mVal.i < i.mCondition.mConditionVal.i)
+								playAnim = true;
+							break;
+						}
+						case MD_FLOAT: {
+							if (i.mCondition.mParam->mVal.f < i.mCondition.mConditionVal.f)
+								playAnim = true;
+							break;
+						}
+						}
+						break;
+					}
+					}
+
+					if (playAnim == true)
+					{
+						std::cout << "ChangeAnimation to: " + i.mNextAnimName + "\n";
+						//ChangeAnimation(i.mNextAnimName);
+						return;
+					}
+				}
+				
+
+			}
 
 			void updateCurrentAnimation()
 			{
@@ -263,7 +365,6 @@ namespace engine
 
 			}
 			
-
 			u32 FindPosition(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
 				for (u32 i = 0; i < nodeAnim->mNumPositionKeys - 1; i++)

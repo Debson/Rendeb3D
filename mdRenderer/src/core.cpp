@@ -58,6 +58,8 @@ namespace md
 
 		engine::shaders::Init();
 
+		inputconf::Init();
+
 		isRunning = true;
 	}
 

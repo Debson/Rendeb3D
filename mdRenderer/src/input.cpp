@@ -1,5 +1,7 @@
 #include "input.h"
 
+#include "time.h"
+
 namespace md
 {
 	static bool mdNeedsInitializaiotn(true);
@@ -14,7 +16,11 @@ namespace md
 	static bool mdIsMouseScrollActive(false);
 	static int mdCurrentScrollX, mdCurrentScrollY;
 	static int mdPreviousScrollX, mdPreviousScrollY;
-
+	time::Timer mdAxisTimer;
+	static float mdAxisValue;
+	static bool mdAxisActive;
+	static float mdAxisRecenterStep;
+	
 
 	input::axis_t::axis_t() : mDead(0.0001f), mGravity(3.f), mSensitivity(3.f) { }
 
@@ -55,17 +61,54 @@ namespace md
 
 	float input::GetAxis(std::string const &axis)
 	{
+		axis_t *ax = FindAxis(axis);
+		if (ax == nullptr)
+			return 0.f;
 
+		mdAxisRecenterStep = ax->mGravity * 0.01f;
+		if (IsKeyDown(ax->mPositiveButton))
+		{
+			mdAxisActive = true;
+			// Positive button pressed, reset axis value to 0;
+			if (mdAxisValue < 0.f)
+				mdAxisValue = 0.f;
+			mdAxisValue += ax->mSensitivity * 0.01f;
+			if (mdAxisValue > 1.f)
+				mdAxisValue = 1.f;
+		}
+		else if (IsKeyDown(ax->mNegativeButton))
+		{
+			mdAxisActive = true;
+			// Negative button pressed, reset axis value to 0;
+			if (mdAxisValue > 0.f)
+				mdAxisValue = 0.f;
+			mdAxisValue -= ax->mSensitivity * 0.01f;
+			if (mdAxisValue < -1.f)
+				mdAxisValue = -1.f;
+		}
+		else
+		{
+			mdAxisActive = false;
+		}
+
+		return mdAxisValue;
 	}
 
 	void input::AddAxis(const axis_t &axis)
 	{
-
+		mdAxisContainer.push_back(axis);
 	}
 
-	void input::FindAxis(std::string const &axis)
+	input::axis_t *input::FindAxis(std::string const &axis)
 	{
+		size_t size = mdAxisContainer.size();
+		for (size_t i = 0; i < size; i++)
+		{
+			if (mdAxisContainer[i].mName == axis)
+				return &mdAxisContainer[i];
+		}
 
+		return nullptr;
 	}
 
 	glm::vec2 input::GetMousePosition()
@@ -107,7 +150,7 @@ namespace md
 	void inputconf::Init()
 	{
 		input::axis_t vertical;
-		vertical.mName = "Vertical";
+		vertical.mName = "vertical";
 		vertical.mPositiveButton = input::KeyCode::W;
 		vertical.mNegativeButton = input::KeyCode::S;
 		input::AddAxis(vertical);
@@ -151,6 +194,23 @@ namespace md
 		mdPreviousScrollX = mdCurrentScrollX;
 		mdPreviousScrollY = mdCurrentScrollY;
 		mdIsMouseScrollActive = false;
+
+		// Reset axis value to 0.f
+		if (mdAxisActive == false && mdAxisValue != 0.f) 
+		{
+			if (mdAxisValue > 0.f && mdAxisValue - mdAxisRecenterStep > 0.f)
+			{
+				mdAxisValue -= mdAxisRecenterStep;
+			}
+			else if (mdAxisValue < 0.f && mdAxisValue + mdAxisRecenterStep < 0.f)
+			{
+				mdAxisValue += mdAxisRecenterStep;
+			}
+			else
+			{
+				mdAxisValue = 0.f;
+			}
+		}
 	}
 
 	void inputconf::UpdateRelativeMousePosition()

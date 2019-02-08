@@ -7,9 +7,14 @@
 
 namespace md
 {
-
 	namespace core
 	{
+#define MD_TRUE		0x1
+#define MD_FALSE	0x0
+#define MD_FLOAT	0x1001
+#define MD_INT		0x1002
+#define MD_BOOLEAN	0x1003
+
 		typedef bool b8;
 
 		typedef int8_t		s8;
