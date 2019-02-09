@@ -34,6 +34,12 @@ namespace md
 		m_Graphics->GetModelController()->SetParameter(name, val);
 	}
 
+
+	void engine::Animator::SetTrigger(std::string const &name)
+	{
+		m_Graphics->GetModelController()->SetParameter(name, true, true);
+	}
+
 	engine::graphics::transition_t *engine::Animator::GetTransition(std::string const &first, std::string const &second)
 	{
 		return m_Graphics->GetModelController()->GetTransition(first, second);
@@ -55,16 +61,11 @@ namespace md
 		}
 	}
 
-	/*template <typename T>
-	void engine::Animator::AddTransitionCondition(std::string const &firstTransName, 
-												  std::string const &secondTransName, 
-												  std::string const &paramName, 
-												  int condition,
-												  T val)
+	void engine::Animator::AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, int condition)
 	{
-		m_Graphics->GetModelController()->SetTransitionCondition(GetTransition(firstTransName, secondTransName), paramName, condition, val);
-	}*/
+		m_Graphics->GetModelController()->SetTransitionCondition(GetTransition(firstTransName, secondTransName), paramName, condition);
 
+	}
 	void engine::Animator::PlayAnimation(std::string const &name) const
 	{
 		m_Graphics->GetModelController()->SetCurrentAnimation(name);

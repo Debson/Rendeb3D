@@ -43,6 +43,7 @@ namespace engine
 		
 		struct param_t
 		{
+			param_t() : mIsTrigger(false) { }
 			template <class T>
 			T getValue(u32 type)
 			{
@@ -54,11 +55,11 @@ namespace engine
 					break;
 				}
 				case MD_FLOAT: {
-					val = mVal.i;
+					val = mVal.f;
 					break;
 				}
 				case MD_BOOLEAN: {
-					val = mVal.i;
+					val = mVal.b;
 					break;
 				}
 				}
@@ -67,6 +68,7 @@ namespace engine
 			}
 
 			std::string mName;
+			b8 mIsTrigger;
 			type_t mVal;
 		};
 
@@ -84,23 +86,27 @@ namespace engine
 																		  mDuration(transDur), 
 																		  mTimeElapsed(0.f) { }
 			void Reset() { mTimeElapsed = 0.f; }
-			void SetCondition(param_t *p, u32 type, type_t conditionVal, u32 conditionValType)
+			void AddCondition(param_t *p, u32 type, type_t conditionVal, u32 conditionValType)
 			{
-				mCondition.mParam = p;
-				mCondition.mConditionType = type;
-				mCondition.mConditionVal = conditionVal;
-				mCondition.mConditionValType = conditionValType;
+				condition_t con;
+				con.mParam = p;
+				conditionValType == MD_TRIGGER ? p->mIsTrigger = true : 0;
+				con.mConditionType = type;
+				con.mConditionVal = conditionVal;
+				con.mConditionValType = conditionValType;
+				mConditions.push_back(con);
 			}
 
 			std::string mNextAnimName;
 			f32 mDuration;
 			f32 mTimeElapsed;
-			condition_t mCondition;
+			std::vector<condition_t> mConditions;
+			
 		};
 
 		struct anim_t
 		{
-			anim_t() : mTimeElapsed(0.f), mStartTime(0.f), mHasExitTime(true), mScene(nullptr), mInterp(0.f) { }
+			anim_t() : mTimeElapsed(0.f), mStartTime(0.f), mHasExitTime(true), mScene(nullptr), mInterp(0.f), mAnimRepeat(false) { }
 
 			void Reset() { mTimeElapsed = 0.f; mStartTime = time::Time(); mInterp = 0.f; }
 
@@ -133,9 +139,8 @@ namespace engine
 			b8 mHasExitTime;	//
 			f64 mDuration;
 
-			aiVector3D mCurrTrans;
-			aiQuaternion mCurrRot;
-			aiVector3D mCurrScale;
+			b8 mAnimRepeat;
+
 			f32 mCurrTime;
 			f32 mInterp;
 
@@ -200,6 +205,10 @@ namespace engine
 					m_CurrentScene = animationsLoaded["Header"];*/
 			}
 
+			/*	@param name		-> name of next animation
+				@param trans	-> param that induced animation change
+				
+			*/
 			void ChangeAnimation(std::string const &name)
 			{
 				if (m_AnimationsLoaded.find(name) != m_AnimationsLoaded.end())
@@ -256,51 +265,73 @@ namespace engine
 				for (auto & i : m_CurrentScene->mTransitions)
 				{
 					b8 playAnim = false;
-					switch (i.mCondition.mConditionType)
+					for (auto & j : i.mConditions)
 					{
-					case MD_GREATER: {
-						switch (i.mCondition.mConditionValType)
+						switch (j.mConditionType)
 						{
-						case MD_INT: {
-							if (i.mCondition.mParam->mVal.i > i.mCondition.mConditionVal.i)
-								playAnim = true;
-						break;
+						case MD_GREATER: {
+							switch (j.mConditionValType)
+							{
+							case MD_INT: {
+								if (j.mParam->mVal.i > j.mConditionVal.i)
+									playAnim = true;
+								break;
+							}
+							case MD_FLOAT: {
+								if (j.mParam->mVal.f > j.mConditionVal.f)
+									playAnim = true;
+								break;
+							}
+							}
+							break;
 						}
-						case MD_FLOAT: {
-							if (i.mCondition.mParam->mVal.f > i.mCondition.mConditionVal.f)
+						case MD_LESS: {
+							switch (j.mConditionValType)
+							{
+							case MD_INT: {
+								if (j.mParam->mVal.i < j.mConditionVal.i)
+									playAnim = true;
+								break;
+							}
+							case MD_FLOAT: {
+								if (j.mParam->mVal.f < j.mConditionVal.f)
+									playAnim = true;
+								break;
+							}
+							}
+							break;
+						}
+						case MD_TRUE:
+						case MD_FALSE: {
+							switch (j.mConditionValType)
+							{
+							case MD_BOOLEAN: {
+								if (j.mParam->mVal.b == j.mConditionVal.b)
+									playAnim = true;
+								break;
+							}
+							}
+							break;
+						}
+						case MD_TRIGGER: {
+							if (j.mParam->mVal.b == j.mConditionVal.b)
 								playAnim = true;
 							break;
 						}
 						}
-						break;
-					}
-					case MD_LESS: {
-						switch (i.mCondition.mConditionValType)
+
+						if (playAnim == true)
 						{
-						case MD_INT: {
-							if (i.mCondition.mParam->mVal.i < i.mCondition.mConditionVal.i)
-								playAnim = true;
-							break;
+							std::cout << "ChangeAnimation from " <<  m_CurrentScene->mName << " to: " + i.mNextAnimName + "\n";
+							std::cout << "Is a Trigger? " << (j.mParam->mIsTrigger ? "Yes" : "No") << std::endl;
+							ChangeAnimation(i.mNextAnimName);
+							return;
 						}
-						case MD_FLOAT: {
-							if (i.mCondition.mParam->mVal.f < i.mCondition.mConditionVal.f)
-								playAnim = true;
-							break;
-						}
-						}
-						break;
-					}
+
+						m_CurrentScene->mAnimRepeat = playAnim;
 					}
 
-					if (playAnim == true)
-					{
-						std::cout << "ChangeAnimation to: " + i.mNextAnimName + "\n";
-						//ChangeAnimation(i.mNextAnimName);
-						return;
-					}
 				}
-				
-
 			}
 
 			void updateCurrentAnimation()
@@ -308,7 +339,17 @@ namespace engine
 				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
 #ifndef DEBUG
-					ChangeAnimation("Start");
+					// If animation change was caused by a trigger, reset if right after animation is finished
+					for (auto & i : m_PreviousScene->FindTransition(m_CurrentScene->mName)->mConditions)
+					{
+						if (i.mParam->mIsTrigger)
+						{
+							i.mParam->mVal.b = false;
+							std::cout << "\nTrigger reseted!" << std::endl;
+						}
+					}
+					if(m_CurrentScene->mAnimRepeat == false)
+						ChangeAnimation("Start");
 #endif
 				}
 				else
@@ -727,7 +768,6 @@ namespace engine
 					//std::cout << delta << std::endl;
 
 				}
-				m_CurrentScene->mCurrTrans = translation;
 
 				aiMatrix4x4 mat;
 				aiMatrix4x4::Translation(translation, mat);
@@ -767,7 +807,6 @@ namespace engine
 					rotation.Normalize();
 
 				}
-				m_CurrentScene->mCurrRot = rotation;
 
 				aiMatrix4x4 mat(rotation.GetMatrix());
 				return mat;
@@ -805,7 +844,6 @@ namespace engine
 					scale = (start + delta * (end - start));
 
 				}
-				m_CurrentScene->mCurrScale = scale;
 
 				aiMatrix4x4 mat;
 				aiMatrix4x4::Scaling(scale, mat);

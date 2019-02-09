@@ -39,19 +39,21 @@ namespace engine
 
 			void SetParameter(std::string const &name, s32 val);
 
-			void SetParameter(std::string const &name, b8 val);
+			void SetParameter(std::string const &name, b8 val, b8 isTrigger = false);
 
 			void CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time);
 
 			void SetExitTransition(std::string const &name, b8 val);
 
 			void SetTransitionDuration(std::string const &name, f32 dur);
-
+			// **Set Float condition**
 			void SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, f32 val);
-
+			// **Set Integer condition**
 			void SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, s32 val);
-
+			// **Set Boolean condition**
 			void SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, b8 val);
+			// **Set Trigger condition**
+			void SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition);
 
 			void DrawModel(Shader *shader);
 

@@ -17,7 +17,7 @@ namespace md
 	void interface::ProcessCameraInput(engine::graphics::Camera &cam)
 	{
 
-		if (input::IsKeyDown(input::KeyCode::W))
+		if (input::IsKeyDown(input::KeyCode::W) && input::IsKeyDown(input::KeyCode::LCtrl))
 		{
 			if (input::IsKeyDown(input::KeyCode::LShift))
 				cam.ProcessKeyboard(engine::graphics::CameraMovement::Forward, time::DeltaTime, shiftSpeed);

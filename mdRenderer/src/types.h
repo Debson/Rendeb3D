@@ -14,6 +14,7 @@ namespace md
 #define MD_FLOAT	0x1001
 #define MD_INT		0x1002
 #define MD_BOOLEAN	0x1003
+#define MD_TRIGGER	0x1004
 
 		typedef bool b8;
 

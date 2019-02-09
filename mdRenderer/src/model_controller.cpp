@@ -40,9 +40,15 @@ namespace engine
 		FindParam(name)->mVal.i = val;
 	}
 
-	void graphics::ModelController::SetParameter(std::string const &name, b8 val)
+	void graphics::ModelController::SetParameter(std::string const &name, b8 val, b8 isTrigger)
 	{
-		FindParam(name)->mVal.b = val;
+		if (isTrigger)
+		{
+			FindParam(name)->mVal.b = true;
+			FindParam(name)->mIsTrigger = true;
+		}
+		else
+			FindParam(name)->mVal.b = val;
 	}
 
 	void graphics::ModelController::CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time)
@@ -64,21 +70,29 @@ namespace engine
 	{
 		type_t type;
 		type.f = val;
-		trans->SetCondition(FindParam(paramName), condition, type, MD_FLOAT);
+		trans->AddCondition(FindParam(paramName), condition, type, MD_FLOAT);
 	}
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, s32 val)
 	{
 		type_t type;
 		type.i = val;
-		trans->SetCondition(FindParam(paramName), condition, type, MD_INT);
+		trans->AddCondition(FindParam(paramName), condition, type, MD_INT);
 	}
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, b8 val)
 	{
 		type_t type;
 		type.b = val;
-		trans->SetCondition(FindParam(paramName), condition, type, MD_BOOLEAN);
+
+		trans->AddCondition(FindParam(paramName), condition, type, MD_BOOLEAN);
+	}
+
+	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition)
+	{
+		type_t type;
+		type.b = true;
+		trans->AddCondition(FindParam(paramName), condition, type, MD_TRIGGER);
 	}
 
 	void graphics::ModelController::DrawModel(Shader *shader)
