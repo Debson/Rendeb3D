@@ -43,8 +43,11 @@ void md::Scene::OnWindowOpen()
 	m_Animator.AddParameter("Trigger");
 	m_Animator.AddParameter("Bool");
 
-	//m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
-	//m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);
+	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
+	m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);
+	
+	m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", false);
+
 	/*m_Animator.AddTransitionCondition("Start", "Running", "Bool", MD_TRUE, true);
 	m_Animator.AddTransitionCondition("Running", "Start", "Bool", MD_FALSE, false);*/
 

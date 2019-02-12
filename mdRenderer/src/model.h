@@ -108,7 +108,7 @@ namespace engine
 
 		struct anim_t
 		{
-			anim_t(std::string const &name, std::string const &path) : mTimeElapsed(0.f), mStartTime(0.f), mScene(nullptr), mInterp(0.f), mAnimRepeat(false)
+			anim_t(std::string const &name, std::string const &path) : mTimeElapsed(0.f), mStartTime(0.f), mScene(nullptr), mInterp(0.f)
 			{ 
 				mScene = mImporter.ReadFile(path, aiProcess_Triangulate
 					| aiProcess_GenSmoothNormals
@@ -146,7 +146,6 @@ namespace engine
 				mTransitions.push_back(trans);
 			}
 
-
 			Assimp::Importer mImporter;
 			const aiScene *mScene;
 
@@ -154,8 +153,6 @@ namespace engine
 			f64 mTimeElapsed;	// Current time of animation in ticks
 			f64 mStartTime;		// Time when animation started in ticks
 			f64 mDuration;
-
-			b8 mAnimRepeat;
 
 			f32 mCurrTime;
 			f32 mInterp;
@@ -230,7 +227,6 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
-				m_CurrentScene->mAnimRepeat = checkTransitionConditions(m_PreviousScene) || checkTransitionConditions(m_CurrentScene);
 				updateCurrentAnimation();
 				
 				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
@@ -258,17 +254,17 @@ namespace engine
 
 		private:
 
-			bool checkTransitionConditions(anim_t *scene)
+			anim_t *checkTransitionConditions(anim_t *scene)
 			{
 				/* Animation doesn't have any transitions, loop it. */
 				if (scene->mTransitions.empty())
-					return true;
+					return scene;
 				
-				
-
+				anim_t *ret = scene;
+				u32 conditionCounter = 0;
 				for (auto & i : scene->mTransitions)
 				{
-					b8 playAnim = false;
+					conditionCounter += i.mConditions.size();
 					for (auto & j : i.mConditions)
 					{
 						switch (j.mConditionType)
@@ -278,13 +274,13 @@ namespace engine
 							{
 							case MD_INT: {
 								if (j.mParam->mVal.i > j.mConditionVal.i)
-									playAnim = true;
+									ret = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							case MD_FLOAT: {
 								//std::cout << j.mParam->mVal.f << std::endl;
 								if (j.mParam->mVal.f > j.mConditionVal.f)
-									playAnim = true;
+									ret = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							}
@@ -295,12 +291,12 @@ namespace engine
 							{
 							case MD_INT: {
 								if (j.mParam->mVal.i < j.mConditionVal.i)
-									playAnim = true;
+									ret = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							case MD_FLOAT: {
 								if (j.mParam->mVal.f < j.mConditionVal.f)
-									playAnim = true;
+									ret = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							}
@@ -308,59 +304,57 @@ namespace engine
 						}
 						case MD_BOOLEAN: {
 							if (j.mParam->mVal.b == j.mConditionVal.b)
-								playAnim = true;
+								ret = m_AnimationsLoaded[i.mNextAnimName];
 							break;
 						}
 						case MD_TRIGGER: {
 							if (j.mParam->mVal.b == j.mConditionVal.b)
-								playAnim = true;
+								ret = m_AnimationsLoaded[i.mNextAnimName];
 							break;
 						}
 						}
 
 						// Condition that cause change of animation is met, break out off the loop
-						if (playAnim == true)
-							break;
-					
+						if (ret != scene)
+							return ret;
 					}
 
-					if (playAnim == true && i.mNextAnimName == m_CurrentScene->mName)
-						return true;
-					else if (playAnim == true)
+					/*if (i.mConditions.empty() && i.mHasExitTime && ret == scene)
 					{
-						std::cout << "ChangeAnimation from " << scene->mName << " to: " + i.mNextAnimName + "\n";
-						//std::cout << "Is a Trigger? " << (j.mParam->mIsTrigger ? "Yes" : "No") << std::endl;
-						ChangeAnimation(i.mNextAnimName);
+						ret = m_AnimationsLoaded[i.mNextAnimName];
+						scene->mTransOnFinished = true;
+					}*/
+				}
+
+				if (conditionCounter == 0 && ret == scene && !scene->mTransitions.empty())
+				{
+					if (scene->mTimeElapsed + 1.f >= scene->mDuration && scene->mTransitions[0].mHasExitTime)
+					{
+						std::cout << "There is no way back!\n";
+						std::cout << "Oh, there is a way back!" << scene->mTransitions[0].mNextAnimName << std::endl;
+						ret = m_AnimationsLoaded[scene->mTransitions[0].mNextAnimName];
 					}
 				}
 
-				return false;
+				return ret;
 			}
 
 			void updateCurrentAnimation()
 			{
+				anim_t *playAnim;
+				playAnim = checkTransitionConditions(m_CurrentScene);
+
+				if (playAnim != m_CurrentScene)
+				{
+					ChangeAnimation(playAnim->mName);
+				}
+
 				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
-#ifndef DEBUG
-					// If animation change was caused by a trigger, reset if right after animation is finished
-					for (auto & i : m_PreviousScene->FindTransition(m_CurrentScene->mName)->mConditions)
-					{
-						if (i.mParam->mIsTrigger)
-						{
-							i.mParam->mVal.b = false;
-							std::cout << "\nTrigger reseted!" << std::endl;
-						}
-					}
+					std::cout << "Animation changed to: " << playAnim->mName << std::endl;
 
-					if (m_CurrentScene->mAnimRepeat == false)
-					{
-						//ChangeAnimation("Start");
-					}
-					else
-					{
-						m_CurrentScene->Reset();
-					}
-#endif
+					ChangeAnimation(playAnim->mName);
+					
 				}
 				else
 				{
@@ -371,7 +365,6 @@ namespace engine
 
 			void updateCurrentTransition()
 			{
-#ifndef DEBUG
 				if (m_CurrentTransition->mTimeElapsed > m_CurrentTransition->mDuration)
 				{
 					m_CurrentTransition = nullptr;
@@ -385,35 +378,6 @@ namespace engine
 					if (m_PreviousScene->mInterp > 1.f)
 						m_PreviousScene->mInterp = 1.f;
 				}
-#else
-
-				static bool change = false;
-				
-
-				if (change)
-				{
-					m_CurrentTransition->mTimeElapsed += time::DeltaTime;
-					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
-					if (m_PreviousScene->mInterp > 1.f)
-					{
-						m_PreviousScene->mInterp = 1.f;
-						change = !change;
-					}
-				}
-				else
-				{
-					m_CurrentTransition->mTimeElapsed -= time::DeltaTime;
-					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
-					if (m_PreviousScene->mInterp < 0.f)
-					{
-						m_PreviousScene->mInterp = 0.f;
-						change = !change;
-					}
-				}
-			
-#endif
-
-
 			}
 			
 			u32 FindPosition(f32 animTime, const aiNodeAnim *nodeAnim)

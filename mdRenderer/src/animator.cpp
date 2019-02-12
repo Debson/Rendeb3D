@@ -11,7 +11,6 @@ namespace md
 	void engine::Animator::AddAnimation(std::string const &name, std::string const &path, b8 hasExitTime) const
 	{
 		m_Graphics->GetModelController()->LoadAnimation(name, path);
-		m_Graphics->GetModelController()->SetExitTransition(name, hasExitTime);
 	}
 
 	void engine::Animator::AddParameter(std::string const &name)
@@ -71,6 +70,12 @@ namespace md
 		m_Graphics->GetModelController()->SetTransitionCondition(GetTransition(firstTransName, secondTransName), paramName, condition);
 
 	}
+
+	void engine::Animator::SetTransitionExitTimeState(std::string const &firstTransName, std::string const &secondTransName, b8 val)
+	{
+		m_Graphics->GetModelController()->SetTransitionExitTimeState(firstTransName, secondTransName, val);
+	}
+
 	void engine::Animator::PlayAnimation(std::string const &name) const
 	{
 		m_Graphics->GetModelController()->SetCurrentAnimation(name);

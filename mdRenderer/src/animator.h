@@ -39,6 +39,8 @@ namespace md
 			void AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, b8 condition);
 			// Set trigger condition
 			void AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, int condition);
+			
+			void SetTransitionExitTimeState(std::string const &firstTransName, std::string const &secondTransName, b8 val);
 
 			void PlayAnimation(std::string const &name) const;
 

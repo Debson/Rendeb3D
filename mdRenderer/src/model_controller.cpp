@@ -56,9 +56,9 @@ namespace engine
 		GetAnimation(firstAnim)->AddTransition(transition_t(secondAnim, time));
 	}
 
-	void graphics::ModelController::SetExitTransition(std::string const &name, b8 val)
+	void graphics::ModelController::SetTransitionExitTimeState(std::string const &firstAnim, std::string const &secondAnim, b8 val)
 	{
-		//m_AnimationsLoaded[name]->mHasExitTime = val;
+		m_AnimationsLoaded[firstAnim]->FindTransition(secondAnim)->mHasExitTime = val;
 	}
 
 	void graphics::ModelController::SetTransitionDuration(std::string const &name, f32 dur)
