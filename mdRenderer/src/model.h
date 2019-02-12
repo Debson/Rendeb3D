@@ -27,6 +27,7 @@
 #include "math.h"
 #include "time.h"
 #include "graphics_types.h"
+#include "debug.h"
 
 #include "md_load_texture.h"
 
@@ -254,6 +255,10 @@ namespace engine
 
 		private:
 
+			/*	@param 'scene' : either m_CurrentScene or m_PreviousScene
+				returns : a pointer to the animation, which should be used as a next animation
+			*/
+				
 			anim_t *checkTransitionConditions(anim_t *scene)
 			{
 				/* Animation doesn't have any transitions, loop it. */
@@ -318,20 +323,13 @@ namespace engine
 						if (ret != scene)
 							return ret;
 					}
-
-					/*if (i.mConditions.empty() && i.mHasExitTime && ret == scene)
-					{
-						ret = m_AnimationsLoaded[i.mNextAnimName];
-						scene->mTransOnFinished = true;
-					}*/
 				}
 
+				/* */
 				if (conditionCounter == 0 && ret == scene && !scene->mTransitions.empty())
 				{
 					if (scene->mTimeElapsed + 1.f >= scene->mDuration && scene->mTransitions[0].mHasExitTime)
 					{
-						std::cout << "There is no way back!\n";
-						std::cout << "Oh, there is a way back!" << scene->mTransitions[0].mNextAnimName << std::endl;
 						ret = m_AnimationsLoaded[scene->mTransitions[0].mNextAnimName];
 					}
 				}
@@ -351,7 +349,7 @@ namespace engine
 
 				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
-					std::cout << "Animation changed to: " << playAnim->mName << std::endl;
+					debug::log("Animation changed to: " + playAnim->mName);
 
 					ChangeAnimation(playAnim->mName);
 					
@@ -374,6 +372,15 @@ namespace engine
 				{
 					
 					m_CurrentTransition->mTimeElapsed += time::DeltaTime;
+					/* This line gives much smoother transition(Unity style transition), where
+						========\==\				First animation timeline
+								 \  \					transition
+								  \  \					transition
+								   \===\=====		Second animation timeline 
+
+					*/
+					m_CurrentScene->mCurrTime += (time::DeltaTime * m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond);
+					//debug::log(m_CurrentScene->mCurrTime);
 					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
 					if (m_PreviousScene->mInterp > 1.f)
 						m_PreviousScene->mInterp = 1.f;

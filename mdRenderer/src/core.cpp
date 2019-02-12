@@ -10,6 +10,7 @@
 #include "conf.h"
 #include "gui.h"
 #include "shader_manager.h"
+#include "debug.h"
 
 namespace md
 {
@@ -41,6 +42,8 @@ namespace md
 		void SetupGlew();
 
 		void OnNewFrame();
+
+		void OnFinishFrame();
 
 		void ProcessInput(SDL_Event *e);
 
@@ -93,6 +96,7 @@ namespace md
 			SDL_GL_SwapWindow(mWindow);
 
 			applicationHandler.OnFinishFrame();
+			OnFinishFrame();
 		}
 	}
 
@@ -194,6 +198,11 @@ namespace md
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(mWindow);
 		ImGui::NewFrame();
+	}
+
+	void core::OnFinishFrame()
+	{
+		debug::conf::process();
 	}
 
 	void core::ProcessInput(SDL_Event *e)
