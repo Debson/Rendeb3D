@@ -84,7 +84,8 @@ namespace engine
 		{
 			transition_t(std::string const &nextAnimName, f32 transDur) : mNextAnimName(nextAnimName), 
 																		  mDuration(transDur), 
-																		  mTimeElapsed(0.f) { }
+																		  mTimeElapsed(0.f),
+																		  mHasExitTime(true) { }
 			void Reset() { mTimeElapsed = 0.f; }
 			void AddCondition(param_t *p, u32 type, type_t conditionVal, u32 conditionValType)
 			{
@@ -100,13 +101,29 @@ namespace engine
 			std::string mNextAnimName;
 			f32 mDuration;
 			f32 mTimeElapsed;
+			b8 mHasExitTime;
 			std::vector<condition_t> mConditions;
 			
 		};
 
 		struct anim_t
 		{
-			anim_t() : mTimeElapsed(0.f), mStartTime(0.f), mHasExitTime(true), mScene(nullptr), mInterp(0.f), mAnimRepeat(false) { }
+			anim_t(std::string const &name, std::string const &path) : mTimeElapsed(0.f), mStartTime(0.f), mScene(nullptr), mInterp(0.f), mAnimRepeat(false)
+			{ 
+				mScene = mImporter.ReadFile(path, aiProcess_Triangulate
+					| aiProcess_GenSmoothNormals
+					| aiProcess_FlipUVs
+					| aiProcess_JoinIdenticalVertices);
+
+				if (!mScene || !mScene->mRootNode)
+				{
+					std::cout << "ERROR::ASSIMP:: " << mImporter.GetErrorString() << std::endl;
+					return;
+				}
+
+				mDuration = mScene->mAnimations[0]->mDuration;
+				mName = name;
+			}
 
 			void Reset() { mTimeElapsed = 0.f; mStartTime = time::Time(); mInterp = 0.f; }
 
@@ -136,7 +153,6 @@ namespace engine
 			std::string mName;
 			f64 mTimeElapsed;	// Current time of animation in ticks
 			f64 mStartTime;		// Time when animation started in ticks
-			b8 mHasExitTime;	//
 			f64 mDuration;
 
 			b8 mAnimRepeat;
@@ -183,26 +199,9 @@ namespace engine
 
 			void loadAnim(std::string const &name, std::string const &path)
 			{
-				anim_t *anim = new anim_t();
-				anim->mScene = anim->mImporter.ReadFile(path, aiProcess_Triangulate
-					| aiProcess_GenSmoothNormals
-					| aiProcess_FlipUVs
-					| aiProcess_JoinIdenticalVertices);
-
-				if (!anim->mScene || !anim->mScene->mRootNode)
-				{
-					std::cout << "ERROR::ASSIMP:: " << anim->mImporter.GetErrorString() << std::endl;
-					return;
-				}
-
-				anim->mHasExitTime = true;
-				anim->mDuration = anim->mScene->mAnimations[0]->mDuration;
-				anim->mName = name;
+				anim_t *anim = new anim_t(name, path);
 				
 				m_AnimationsLoaded.insert(std::make_pair(name, anim));
-
-				/*if (name == "Header")
-					m_CurrentScene = animationsLoaded["Header"];*/
 			}
 
 			/*	@param name		-> name of next animation
@@ -213,7 +212,7 @@ namespace engine
 			{
 				if (m_AnimationsLoaded.find(name) != m_AnimationsLoaded.end())
 				{
-					m_CurrentScene->mCurrTime = m_CurrentScene->mTimeElapsed - 3;
+					m_CurrentScene->mCurrTime = m_CurrentScene->mTimeElapsed;
 					m_PreviousScene = m_CurrentScene;
 					m_CurrentScene = m_AnimationsLoaded[name];
 					m_CurrentScene->Reset();
@@ -231,7 +230,7 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
-				checkTransitionConditions(m_CurrentScene);
+				m_CurrentScene->mAnimRepeat = checkTransitionConditions(m_PreviousScene) || checkTransitionConditions(m_CurrentScene);
 				updateCurrentAnimation();
 				
 				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
@@ -242,7 +241,6 @@ namespace engine
 					transforms[i] = mdEngine::math::aiMatrix4x4ToGlm(m_BonesInfo[i].finalTransform);
 				}
 			}
-
 
 			// Change properties's names to be in accordance with naming convention
 
@@ -262,6 +260,12 @@ namespace engine
 
 			bool checkTransitionConditions(anim_t *scene)
 			{
+				/* Animation doesn't have any transitions, loop it. */
+				if (scene->mTransitions.empty())
+					return true;
+				
+				
+
 				for (auto & i : scene->mTransitions)
 				{
 					b8 playAnim = false;
@@ -314,19 +318,22 @@ namespace engine
 						}
 						}
 
-						scene->mAnimRepeat = playAnim;
+						// Condition that cause change of animation is met, break out off the loop
+						if (playAnim == true)
+							break;
 					
-						if (playAnim == true && i.mNextAnimName == m_CurrentScene->mName)
-							return true;
-						else if (playAnim == true)
-						{
-							std::cout << "ChangeAnimation from " << scene->mName << " to: " + i.mNextAnimName + "\n";
-							std::cout << "Is a Trigger? " << (j.mParam->mIsTrigger ? "Yes" : "No") << std::endl;
-							ChangeAnimation(i.mNextAnimName);
-						}
 					}
 
+					if (playAnim == true && i.mNextAnimName == m_CurrentScene->mName)
+						return true;
+					else if (playAnim == true)
+					{
+						std::cout << "ChangeAnimation from " << scene->mName << " to: " + i.mNextAnimName + "\n";
+						//std::cout << "Is a Trigger? " << (j.mParam->mIsTrigger ? "Yes" : "No") << std::endl;
+						ChangeAnimation(i.mNextAnimName);
+					}
 				}
+
 				return false;
 			}
 
@@ -335,17 +342,6 @@ namespace engine
 				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
 #ifndef DEBUG
-					/*	Check transition condition for previous animation.
-						Function will return true, if any of previous scene's condition that will lead to change 
-						of the animation to the same animation that is currently played.
-						If that happen, restart the animation so it can be played another time. 
-					*/
-					if (checkTransitionConditions(m_PreviousScene))
-					{
-						m_CurrentScene->Reset();
-						return;
-					}
-
 					// If animation change was caused by a trigger, reset if right after animation is finished
 					for (auto & i : m_PreviousScene->FindTransition(m_CurrentScene->mName)->mConditions)
 					{
@@ -355,9 +351,14 @@ namespace engine
 							std::cout << "\nTrigger reseted!" << std::endl;
 						}
 					}
+
 					if (m_CurrentScene->mAnimRepeat == false)
 					{
-						ChangeAnimation("Start");
+						//ChangeAnimation("Start");
+					}
+					else
+					{
+						m_CurrentScene->Reset();
 					}
 #endif
 				}

@@ -58,7 +58,7 @@ namespace engine
 
 	void graphics::ModelController::SetExitTransition(std::string const &name, b8 val)
 	{
-		m_AnimationsLoaded[name]->mHasExitTime = val;
+		//m_AnimationsLoaded[name]->mHasExitTime = val;
 	}
 
 	void graphics::ModelController::SetTransitionDuration(std::string const &name, f32 dur)

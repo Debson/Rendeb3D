@@ -38,15 +38,15 @@ void md::Scene::OnWindowOpen()
 	m_Animator.AddTransition("Start", "Goalkepper", 10.f, engine::Animator::TransitionType::BILATERAL);
 	m_Animator.AddTransition("Start", "Running", 10.f, engine::Animator::TransitionType::BILATERAL);
 
-	m_Animator.PlayAnimation("Header");
+	//m_Animator.PlayAnimation("Header");
 	m_Animator.AddParameter("Speed");
 	m_Animator.AddParameter("Trigger");
 	m_Animator.AddParameter("Bool");
 
-	/*m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
-	m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);*/
-	m_Animator.AddTransitionCondition("Start", "Running", "Bool", MD_TRUE, true);
-	m_Animator.AddTransitionCondition("Running", "Start", "Bool", MD_FALSE, false);
+	//m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
+	//m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);
+	/*m_Animator.AddTransitionCondition("Start", "Running", "Bool", MD_TRUE, true);
+	m_Animator.AddTransitionCondition("Running", "Start", "Bool", MD_FALSE, false);*/
 
 
 	//myModel->AddAnimation("test2", "assets//Header.fbx");
