@@ -29,7 +29,7 @@ namespace md
 		m_Graphics->GetModelController()->SetParameter(name, val);
 	}
 
-	void engine::Animator::SetBool(std::string const &name, b8 &val)
+	void engine::Animator::SetBool(std::string const &name, b8 val)
 	{
 		m_Graphics->GetModelController()->SetParameter(name, val);
 	}
@@ -59,6 +59,11 @@ namespace md
 			break;
 		}
 		}
+	}
+
+	void engine::Animator::AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, b8 condition)
+	{
+		m_Graphics->GetModelController()->SetTransitionCondition(GetTransition(firstTransName, secondTransName), paramName, condition);
 	}
 
 	void engine::Animator::AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, int condition)

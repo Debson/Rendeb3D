@@ -41,9 +41,12 @@ void md::Scene::OnWindowOpen()
 	m_Animator.PlayAnimation("Header");
 	m_Animator.AddParameter("Speed");
 	m_Animator.AddParameter("Trigger");
+	m_Animator.AddParameter("Bool");
 
-	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
-	m_Animator.AddTransitionCondition("Start", "Running", "Trigger", MD_TRIGGER);
+	/*m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
+	m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);*/
+	m_Animator.AddTransitionCondition("Start", "Running", "Bool", MD_TRUE, true);
+	m_Animator.AddTransitionCondition("Running", "Start", "Bool", MD_FALSE, false);
 
 
 	//myModel->AddAnimation("test2", "assets//Header.fbx");
@@ -131,7 +134,11 @@ void md::Scene::UpdateScene()
 
 	if (input::IsKeyPressed(input::KeyCode::T))
 	{
-		m_Animator.SetTrigger("Trigger");
+		m_Animator.SetBool("Bool", true);
+	}
+	if (input::IsKeyPressed(input::KeyCode::Y))
+	{
+		m_Animator.SetBool("Bool", false);;
 	}
 
 	float speed = input::GetAxis("vertical");

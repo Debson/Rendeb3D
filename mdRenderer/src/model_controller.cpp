@@ -84,8 +84,8 @@ namespace engine
 	{
 		type_t type;
 		type.b = val;
-
-		trans->AddCondition(FindParam(paramName), condition, type, MD_BOOLEAN);
+		// Little bit hacky. Don't have to specify the condition(initially it was MD_TRUE/MD_FALSE).
+		trans->AddCondition(FindParam(paramName), MD_BOOLEAN, type, MD_BOOLEAN);
 	}
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition)

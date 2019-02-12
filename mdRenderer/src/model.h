@@ -231,7 +231,7 @@ namespace engine
 			{
 				aiMatrix4x4 identity = aiMatrix4x4();
 
-				checkTransitionConditions();
+				checkTransitionConditions(m_CurrentScene);
 				updateCurrentAnimation();
 				
 				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
@@ -260,9 +260,9 @@ namespace engine
 
 		private:
 
-			void checkTransitionConditions()
+			bool checkTransitionConditions(anim_t *scene)
 			{
-				for (auto & i : m_CurrentScene->mTransitions)
+				for (auto & i : scene->mTransitions)
 				{
 					b8 playAnim = false;
 					for (auto & j : i.mConditions)
@@ -278,6 +278,7 @@ namespace engine
 								break;
 							}
 							case MD_FLOAT: {
+								//std::cout << j.mParam->mVal.f << std::endl;
 								if (j.mParam->mVal.f > j.mConditionVal.f)
 									playAnim = true;
 								break;
@@ -301,16 +302,9 @@ namespace engine
 							}
 							break;
 						}
-						case MD_TRUE:
-						case MD_FALSE: {
-							switch (j.mConditionValType)
-							{
-							case MD_BOOLEAN: {
-								if (j.mParam->mVal.b == j.mConditionVal.b)
-									playAnim = true;
-								break;
-							}
-							}
+						case MD_BOOLEAN: {
+							if (j.mParam->mVal.b == j.mConditionVal.b)
+								playAnim = true;
 							break;
 						}
 						case MD_TRIGGER: {
@@ -320,18 +314,20 @@ namespace engine
 						}
 						}
 
-						if (playAnim == true)
+						scene->mAnimRepeat = playAnim;
+					
+						if (playAnim == true && i.mNextAnimName == m_CurrentScene->mName)
+							return true;
+						else if (playAnim == true)
 						{
-							std::cout << "ChangeAnimation from " <<  m_CurrentScene->mName << " to: " + i.mNextAnimName + "\n";
+							std::cout << "ChangeAnimation from " << scene->mName << " to: " + i.mNextAnimName + "\n";
 							std::cout << "Is a Trigger? " << (j.mParam->mIsTrigger ? "Yes" : "No") << std::endl;
 							ChangeAnimation(i.mNextAnimName);
-							return;
 						}
-
-						m_CurrentScene->mAnimRepeat = playAnim;
 					}
 
 				}
+				return false;
 			}
 
 			void updateCurrentAnimation()
@@ -339,6 +335,17 @@ namespace engine
 				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
 #ifndef DEBUG
+					/*	Check transition condition for previous animation.
+						Function will return true, if any of previous scene's condition that will lead to change 
+						of the animation to the same animation that is currently played.
+						If that happen, restart the animation so it can be played another time. 
+					*/
+					if (checkTransitionConditions(m_PreviousScene))
+					{
+						m_CurrentScene->Reset();
+						return;
+					}
+
 					// If animation change was caused by a trigger, reset if right after animation is finished
 					for (auto & i : m_PreviousScene->FindTransition(m_CurrentScene->mName)->mConditions)
 					{
@@ -348,8 +355,10 @@ namespace engine
 							std::cout << "\nTrigger reseted!" << std::endl;
 						}
 					}
-					if(m_CurrentScene->mAnimRepeat == false)
+					if (m_CurrentScene->mAnimRepeat == false)
+					{
 						ChangeAnimation("Start");
+					}
 #endif
 				}
 				else

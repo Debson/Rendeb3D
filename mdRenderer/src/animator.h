@@ -26,15 +26,17 @@ namespace md
 			void AddParameter(std::string const &name);
 			void SetFloat(std::string const &name, f32 &val);
 			void SetInt(std::string const &name, s32 &val);
-			void SetBool(std::string const &name, b8 &val);
+			void SetBool(std::string const &name, b8 val);
 			void SetTrigger(std::string const &name);
 			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, const f32 &time = 10.1f, TransitionType transType = ONESIDED);
-			// Set Float, Int, Boolean condition
+			// Set Float, Int condition
 			template <typename T>
 			void AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, int condition, T val)
 			{
 				m_Graphics->GetModelController()->SetTransitionCondition(GetTransition(firstTransName, secondTransName), paramName, condition, val);
 			}
+			// Set Boolean condition
+			void AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, b8 condition);
 			// Set trigger condition
 			void AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, int condition);
 
