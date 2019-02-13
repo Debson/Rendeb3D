@@ -8,14 +8,6 @@
 #include <map>
 #include <algorithm>
 
-/*#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/matrix_interpolation.hpp>
-*/
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -40,7 +32,6 @@ namespace engine
 	namespace graphics
 	{
 		typedef std::vector<Texture>		Textures;
-		
 		
 		struct param_t
 		{
@@ -168,7 +159,7 @@ namespace engine
 		public:
 
 			Model(std::string const &path, bool gamma = false) :
-				m_BoneCount(0), m_VerticesCount(0), m_hasBones(false), m_Path(path)
+				m_BoneCount(0), m_VerticesCount(0), m_hasBones(false), m_Path(path), m_AnimWithExitTime(nullptr)
 			{
 				loadModel(path);
 				std::cout << "Model\n";
@@ -193,6 +184,17 @@ namespace engine
 
 			Parameters m_Parameters;
 			std::vector<transition_t> m_TranstionStack;
+			Textures m_TexturesLoaded;
+			Animations m_AnimationsLoaded;
+			std::vector<Mesh> m_Meshes;
+			std::vector<BoneInfo> m_BonesInfo;
+
+			std::string dir;
+			b8 gammaCorrection;
+
+			// Create get methods 
+			b8 m_hasBones;
+			std::string m_Path;
 
 
 			void loadAnim(std::string const &name, std::string const &path)
@@ -204,7 +206,6 @@ namespace engine
 
 			/*	@param name		-> name of next animation
 				@param trans	-> param that induced animation change
-				
 			*/
 			void ChangeAnimation(std::string const &name)
 			{
@@ -241,19 +242,14 @@ namespace engine
 
 			// Change properties's names to be in accordance with naming convention
 
-			Textures m_TexturesLoaded;
-			Animations m_AnimationsLoaded;
-			std::vector<Mesh> m_Meshes;
-			std::vector<BoneInfo> m_BonesInfo;
-
-			std::string dir;
-			b8 gammaCorrection;
-
-			// Create get methods 
-			b8 m_hasBones;
-			std::string m_Path;
-
 		private:
+
+			u32				m_BoneCount;
+			u32				m_VerticesCount;
+			anim_t			*m_CurrentScene;
+			anim_t			*m_PreviousScene;
+			transition_t	*m_CurrentTransition;
+			anim_t			*m_AnimWithExitTime;
 
 			/*	@param 'scene' : either m_CurrentScene or m_PreviousScene
 				returns : a pointer to the animation, which should be used as a next animation
@@ -269,6 +265,7 @@ namespace engine
 				u32 conditionCounter = 0;
 				for (auto & i : scene->mTransitions)
 				{
+					anim_t *trans = nullptr;
 					conditionCounter += i.mConditions.size();
 					for (auto & j : i.mConditions)
 					{
@@ -279,13 +276,13 @@ namespace engine
 							{
 							case MD_INT: {
 								if (j.mParam->mVal.i > j.mConditionVal.i)
-									ret = m_AnimationsLoaded[i.mNextAnimName];
+									m_AnimWithExitTime = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							case MD_FLOAT: {
 								//std::cout << j.mParam->mVal.f << std::endl;
 								if (j.mParam->mVal.f > j.mConditionVal.f)
-									ret = m_AnimationsLoaded[i.mNextAnimName];
+									m_AnimWithExitTime = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							}
@@ -296,12 +293,12 @@ namespace engine
 							{
 							case MD_INT: {
 								if (j.mParam->mVal.i < j.mConditionVal.i)
-									ret = m_AnimationsLoaded[i.mNextAnimName];
+									m_AnimWithExitTime = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							case MD_FLOAT: {
 								if (j.mParam->mVal.f < j.mConditionVal.f)
-									ret = m_AnimationsLoaded[i.mNextAnimName];
+									m_AnimWithExitTime = m_AnimationsLoaded[i.mNextAnimName];
 								break;
 							}
 							}
@@ -309,19 +306,33 @@ namespace engine
 						}
 						case MD_BOOLEAN: {
 							if (j.mParam->mVal.b == j.mConditionVal.b)
-								ret = m_AnimationsLoaded[i.mNextAnimName];
+								m_AnimWithExitTime = m_AnimationsLoaded[i.mNextAnimName];
 							break;
 						}
 						case MD_TRIGGER: {
 							if (j.mParam->mVal.b == j.mConditionVal.b)
-								ret = m_AnimationsLoaded[i.mNextAnimName];
+								m_AnimWithExitTime = m_AnimationsLoaded[i.mNextAnimName];
 							break;
 						}
 						}
 
+						//debug::log(std::to_string(scene->mTimeElapsed) + "    :    " + std::to_string(scene->mDuration));
 						// Condition that cause change of animation is met, break out off the loop
-						if (ret != scene)
+						if (m_AnimWithExitTime != nullptr && 
+							scene->mTimeElapsed + 1.f >= scene->mDuration && 
+							i.mHasExitTime)
+						{
+							debug::log("Animation: " + scene->mName + " has exit time.");
+							ret = m_AnimWithExitTime;
+							m_AnimWithExitTime = nullptr;
 							return ret;
+						}
+						else if(m_AnimWithExitTime != scene && m_AnimWithExitTime != nullptr && i.mHasExitTime == false)
+						{
+							ret = m_AnimWithExitTime;
+							m_AnimWithExitTime = nullptr;
+							return ret;
+						}
 					}
 				}
 
@@ -373,10 +384,10 @@ namespace engine
 					
 					m_CurrentTransition->mTimeElapsed += time::DeltaTime;
 					/* This line gives much smoother transition(Unity style transition), where
-						========\==\				First animation timeline
-								 \  \					transition
-								  \  \					transition
-								   \===\=====		Second animation timeline 
+						========\=====\				First animation timeline
+								 \     \				transition blend
+								  \     \				transition blend
+								   \=====\========	Second animation timeline 
 
 					*/
 					m_CurrentScene->mCurrTime += (time::DeltaTime * m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond);
@@ -430,7 +441,6 @@ namespace engine
 			}
 
 			/****************************/
-#ifndef DEBUG
 			aiMatrix4x4 CalcInterpolatedPositionTransition(f32 animTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
 			{
 
@@ -570,150 +580,7 @@ namespace engine
 				aiMatrix4x4::Scaling(scale, mat);
 				return mat;
 			}
-#else
-			
-			aiMatrix4x4 CalcInterpolatedPositionTransition(f32 animTime, f32 prevAnimTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
-			{
-
-				aiVector3D translation;
-
-				if (prevNodeAnim->mNumPositionKeys == 1)
-				{
-					translation = prevNodeAnim->mPositionKeys[0].mValue;
-				}
-				else
-				{
-					u32 frameIndex = 0;
-					for (uint32_t i = 0; i < nodeAnim->mNumPositionKeys - 1; i++)
-					{
-						if (animTime < (float)nodeAnim->mPositionKeys[i + 1].mTime)
-						{
-							frameIndex = i;
-							break;
-						}
-					}
-
-					u32 prevFrameIndex = 0;
-					for (uint32_t i = 0; i < prevNodeAnim->mNumPositionKeys - 1; i++)
-					{
-						if (prevAnimTime < (float)prevNodeAnim->mPositionKeys[i + 1].mTime)
-						{
-							prevFrameIndex = i;
-							break;
-						}
-					}
-
-					aiVectorKey prevFrame = prevNodeAnim->mPositionKeys[prevFrameIndex];;
-					aiVectorKey nextFrame = nodeAnim->mPositionKeys[frameIndex];;
-
-					const aiVector3D& start = prevFrame.mValue;
-					const aiVector3D& end = nextFrame.mValue;
-
-					translation = (start + m_PreviousScene->mInterp * (end - start));
-
-					//translation = m_PreviousScene->mCurrTrans;
-				}
-
-				aiMatrix4x4 mat;
-				aiMatrix4x4::Translation(translation, mat);
-				return mat;
-			}
-
-			aiMatrix4x4 CalcInterploatedRotationTransition(f32 animTime, f32 prevAnimTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
-			{
-				aiQuaternion rotation;
-
-				if (prevNodeAnim->mNumRotationKeys == 1)
-				{
-					rotation = prevNodeAnim->mRotationKeys[0].mValue;
-				}
-				else
-				{
-					uint32_t frameIndex = 0;
-					for (uint32_t i = 0; i < nodeAnim->mNumRotationKeys - 1; i++)
-					{
-						if (animTime < (float)nodeAnim->mRotationKeys[i + 1].mTime)
-						{
-							frameIndex = i;
-							break;
-						}
-					}
-
-					u32 prevFrameIndex = 0;
-					for (uint32_t i = 0; i < prevNodeAnim->mNumRotationKeys - 1; i++)
-					{
-						if (prevAnimTime < (float)prevNodeAnim->mRotationKeys[i + 1].mTime)
-						{
-							prevFrameIndex = i;
-							break;
-						}
-					}
-
-					aiQuatKey prevFrame = prevNodeAnim->mRotationKeys[prevFrameIndex];;
-					aiQuatKey nextFrame = nodeAnim->mRotationKeys[frameIndex];
-
-
-					const aiQuaternion& start = prevFrame.mValue;
-					const aiQuaternion& end = nextFrame.mValue;
-
-					aiQuaternion::Interpolate(rotation, start, end, m_PreviousScene->mInterp);
-					rotation.Normalize();
-
-					//rotation = m_PreviousScene->mCurrRot;
-				}
-
-				aiMatrix4x4 mat(rotation.GetMatrix());
-				return mat;
-			}
-
-			aiMatrix4x4 CalcInterpolatedScalingTransition(f32 animTime, f32 prevAnimTime, const aiNodeAnim *nodeAnim, const aiNodeAnim *prevNodeAnim)
-			{
-				aiVector3D scale;
-
-				if (prevNodeAnim->mNumScalingKeys == 1)
-				{
-					scale = prevNodeAnim->mScalingKeys[0].mValue;
-				}
-				else
-				{
-					uint32_t frameIndex = 0;
-					for (uint32_t i = 0; i < nodeAnim->mNumScalingKeys - 1; i++)
-					{
-						if (animTime < (float)nodeAnim->mScalingKeys[i + 1].mTime)
-						{
-							frameIndex = i;
-							break;
-						}
-					}
-
-					u32 prevFrameIndex = 0;
-					for (uint32_t i = 0; i < prevNodeAnim->mNumScalingKeys - 1; i++)
-					{
-						if (prevAnimTime < (float)prevNodeAnim->mScalingKeys[i + 1].mTime)
-						{
-							prevFrameIndex = i;
-							break;
-						}
-					}
-
-					aiVectorKey prevFrame = prevNodeAnim->mScalingKeys[prevFrameIndex];;
-					aiVectorKey nextFrame = nodeAnim->mScalingKeys[frameIndex];
-
-					const aiVector3D& start = prevFrame.mValue;
-					const aiVector3D& end = nextFrame.mValue;
-
-					scale = (start + m_PreviousScene->mInterp * (end - start));
-
-					//scale = m_PreviousScene->mCurrScale;
-				}
-
-				aiMatrix4x4 mat;
-				aiMatrix4x4::Scaling(scale, mat);
-				return mat;
-			}
-#endif
 			/***************************/
-
 
 			aiMatrix4x4 CalcInterpolatedPosition(f32 animTime, const aiNodeAnim *nodeAnim)
 			{
@@ -848,11 +715,9 @@ namespace engine
 				aiMatrix4x4 matScale;
 				aiMatrix4x4 matRotation;
 				aiMatrix4x4 matTranslation;
-#ifndef DEBUG
+
 				if (nodeAnim && prevNodeAnim && m_CurrentTransition)
-#endif
 				{
-#ifndef DEBUG
 						matScale = CalcInterpolatedScalingTransition(animTime, nodeAnim, prevNodeAnim);
 
 						matRotation = CalcInterploatedRotationTransition(animTime, nodeAnim, prevNodeAnim);
@@ -861,41 +726,7 @@ namespace engine
 						updateCurrentTransition();
 
 						nodeTransformation = matTranslation * matRotation * matScale;
-#else
-
-						ImGui::Begin("TEST");
-						static float currAnimTime = 25;
-						static float prevAnimTime = 405;
-						ImGui::SliderFloat("currAnimTime", &currAnimTime, 0.f, 43.f);
-						ImGui::SameLine();
-						ImGui::SliderFloat("prevAnimTime", &prevAnimTime, 0.f, 500.f);
-
-						matScale = CalcInterpolatedScalingTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);
-
-						matRotation = CalcInterploatedRotationTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);
-
-						matTranslation = CalcInterpolatedPositionTransition(currAnimTime, prevAnimTime, nodeAnim, prevNodeAnim);
-						ImGui::End();
-
-						/*if (input::IsKeyDown(input::KeyCode::H))
-						{
-							matScale = CalcInterpolatedScaling(currAnimTime, nodeAnim);
-
-							matRotation = CalcInterploatedRotation(currAnimTime, nodeAnim);
-
-							matTranslation = CalcInterpolatedPosition(currAnimTime, nodeAnim);
-						}
-						else
-						{
-							matScale = CalcInterpolatedScaling(prevAnimTime, prevNodeAnim);
-
-							matRotation = CalcInterploatedRotation(prevAnimTime, prevNodeAnim);
-
-							matTranslation = CalcInterpolatedPosition(prevAnimTime, prevNodeAnim);
-						}*/
-#endif
 				}
-#ifndef DEBUG
 				else if(nodeAnim && m_CurrentTransition == nullptr)
 				{
 					matScale = CalcInterpolatedScaling(animTime, nodeAnim);
@@ -906,8 +737,6 @@ namespace engine
 
 					nodeTransformation = matTranslation * matRotation * matScale;
 				}
-#endif
-
 				
 				aiMatrix4x4 globalTransformation = parentTransform * nodeTransformation;
 
@@ -941,11 +770,6 @@ namespace engine
 				return nullptr;
 			}
 
-			u32				m_BoneCount;
-			u32				m_VerticesCount;
-			anim_t			*m_CurrentScene;
-			anim_t			*m_PreviousScene;
-			transition_t	*m_CurrentTransition;
 
 			void loadModel(std::string const &path)
 			{

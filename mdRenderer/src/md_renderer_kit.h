@@ -11,3 +11,4 @@
 #include "interface.h"
 #include "conf.h"
 #include "shader_manager.h"
+#include "debug.h"

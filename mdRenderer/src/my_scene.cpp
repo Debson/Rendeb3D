@@ -45,6 +45,8 @@ void md::Scene::OnWindowOpen()
 
 	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
 	m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);
+
+	m_Animator.SetTransitionExitTimeState("Start", "Running", false);
 	
 	//m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", false);
 
