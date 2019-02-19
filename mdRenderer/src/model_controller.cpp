@@ -51,14 +51,22 @@ namespace engine
 			FindParam(name)->mVal.b = val;
 	}
 
-	void graphics::ModelController::CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time)
+	void graphics::ModelController::CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time, graphics::TransitionType type)
 	{
-		GetAnimation(firstAnim)->AddTransition(transition_t(secondAnim, time));
+		anim_t *anim = nullptr;
+		if((anim = GetAnimation(firstAnim)) != nullptr)
+			GetAnimation(firstAnim)->AddTransition(transition_t(secondAnim, time, type));
+		else
+			md_log("Transition: | %s --> %s | could not be created.", firstAnim.c_str(), secondAnim.c_str());;
 	}
 
 	void graphics::ModelController::SetTransitionExitTimeState(std::string const &firstAnim, std::string const &secondAnim, b8 val)
 	{
-		m_AnimationsLoaded[firstAnim]->FindTransition(secondAnim)->mHasExitTime = val;
+		transition_t *trans = nullptr;
+		if((trans = GetAnimation(firstAnim)->FindTransition(secondAnim)) != nullptr)
+			GetAnimation(firstAnim)->FindTransition(secondAnim)->mHasExitTime = val;
+		else
+			md_log("Exit time for animation: %s and transition: %s could not be set.", firstAnim.c_str(), secondAnim.c_str());;
 	}
 
 	void graphics::ModelController::SetTransitionDuration(std::string const &name, f32 dur)
@@ -68,31 +76,43 @@ namespace engine
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, f32 val)
 	{
-		type_t type;
-		type.f = val;
-		trans->AddCondition(FindParam(paramName), condition, type, MD_FLOAT);
+		if (trans != nullptr)
+		{
+			type_t type;
+			type.f = val;
+			trans->AddCondition(FindParam(paramName), condition, type, MD_FLOAT);
+		}
 	}
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, s32 val)
 	{
-		type_t type;
-		type.i = val;
-		trans->AddCondition(FindParam(paramName), condition, type, MD_INT);
+		if (trans != nullptr)
+		{
+			type_t type;
+			type.i = val;
+			trans->AddCondition(FindParam(paramName), condition, type, MD_INT);
+		}
 	}
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition, b8 val)
 	{
-		type_t type;
-		type.b = val;
-		// Little bit hacky. Don't have to specify the condition(initially it was MD_TRUE/MD_FALSE).
-		trans->AddCondition(FindParam(paramName), MD_BOOLEAN, type, MD_BOOLEAN);
+		if (trans != nullptr)
+		{
+			type_t type;
+			type.b = val;
+			// Little bit hacky. Don't have to specify the condition(initially it was MD_TRUE/MD_FALSE).
+			trans->AddCondition(FindParam(paramName), MD_BOOLEAN, type, MD_BOOLEAN);
+		}
 	}
 
 	void graphics::ModelController::SetTransitionCondition(graphics::transition_t *trans, std::string const &paramName, int condition)
 	{
-		type_t type;
-		type.b = true;
-		trans->AddCondition(FindParam(paramName), condition, type, MD_TRIGGER);
+		if (trans != nullptr)
+		{
+			type_t type;
+			type.b = true;
+			trans->AddCondition(FindParam(paramName), condition, type, MD_TRIGGER);
+		}
 	}
 
 	void graphics::ModelController::DrawModel(Shader *shader)
@@ -108,7 +128,16 @@ namespace engine
 	// Add error checking!!!!!!!!
 	graphics::anim_t *graphics::ModelController::GetAnimation(std::string const &name)
 	{
-		return m_AnimationsLoaded[name];
+		try
+		{
+			return m_AnimationsLoaded[name];
+		}
+		catch (const std::out_of_range &e)
+		{
+			md_log("Animation: %s does not exist!", name.c_str());
+		}
+
+		return nullptr;
 	}
 
 	graphics::transition_t *graphics::ModelController::GetTransition(std::string const &first, std::string const &second)
@@ -122,6 +151,8 @@ namespace engine
 				return trans;
 			}
 		}
+
+		md_log("Transition | %s --> %s | does not exist!", first.c_str(), second.c_str());
 
 		return nullptr;
 	}
@@ -137,9 +168,13 @@ namespace engine
 		for (u32 i = 0; i < size; i++)
 		{
 			if (m_Parameters[i].mName == name)
+			{
 				return &m_Parameters[i];
+			}
 		}
-
+		
+		md_error("Parameter: %s does not exist!", name.c_str());
+		
 		return nullptr;
 	}
 }

@@ -3,28 +3,22 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdio.h>
+#include <stdarg.h>
+
+#define md_error(message, ...) { md::debug::error::TriggerError(__FILE__, __LINE__, message, ##__VA_ARGS__); }
+#define md_log(message, ...) { md::debug::log(message, ##__VA_ARGS__); }
 
 namespace md
 {
 	namespace debug
 	{
-		extern std::stringstream mdPrevLog;
-		extern std::stringstream mdCurrLog;
-		extern bool mdDisplayLog;
+		void log(const char* formattedMessage, ...);
 
-		template <typename T>
-		void log(T out, bool showRepeatable = false)
+		namespace error
 		{
-			mdCurrLog.str(std::string());
-			mdCurrLog << out << std::flush;
-			if (showRepeatable)
-				mdDisplayLog = true;
-			else if (mdPrevLog.str() != mdCurrLog.str())
-			{
-				mdDisplayLog = true;
-				mdPrevLog.str(std::string());
-				mdPrevLog << mdCurrLog.rdbuf() << std::flush;
-			}
+			void OnTriggerError(const char* const fromFile, int onLineNumber, const char* const formattedString, va_list variableArguments);
+			void TriggerError(const char* const fromFile, int onLineNumber, const char* const formattedString, ...);
 		}
 
 		namespace conf

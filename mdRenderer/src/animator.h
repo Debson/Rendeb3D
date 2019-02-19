@@ -16,19 +16,13 @@ namespace md
 			Animator();
 			Animator(GameObject *obj);
 
-			enum TransitionType : u8
-			{
-				BILATERAL,
-				ONESIDED
-			};
-
 			void AddAnimation(std::string const &name, std::string const &path, b8 hasExitTime = true) const;
 			void AddParameter(std::string const &name);
 			void SetFloat(std::string const &name, f32 &val);
 			void SetInt(std::string const &name, s32 &val);
 			void SetBool(std::string const &name, b8 val);
 			void SetTrigger(std::string const &name);
-			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, const f32 &time = 10.1f, TransitionType transType = ONESIDED);
+			void AddTransition(std::string const &firstAnim, std::string const &secondAnim, const f32 &time = 10.1f, graphics::TransitionType transType = graphics::TransitionType::ONESIDED);
 			// Set Float, Int condition
 			template <typename T>
 			void AddTransitionCondition(std::string const &firstTransName, std::string const &secondTransName, std::string const &paramName, int condition, T val)

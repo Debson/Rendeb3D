@@ -13,6 +13,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/cimport.h>
 
+
 #include "graphics.h"
 #include "mesh.h"
 #include "types.h"
@@ -20,6 +21,8 @@
 #include "time.h"
 #include "graphics_types.h"
 #include "debug.h"
+#include "md_imgui.h"
+#include "gui.h"
 
 #include "md_load_texture.h"
 
@@ -74,10 +77,11 @@ namespace engine
 
 		struct transition_t
 		{
-			transition_t(std::string const &nextAnimName, f32 transDur) : mNextAnimName(nextAnimName), 
+			transition_t(std::string const &nextAnimName, f32 transDur, graphics::TransitionType type) : mNextAnimName(nextAnimName), 
 																		  mDuration(transDur), 
 																		  mTimeElapsed(0.f),
-																		  mHasExitTime(true) { }
+																		  mHasExitTime(true),
+																		  mType(type) { }
 			void Reset() { mTimeElapsed = 0.f; }
 			void AddCondition(param_t *p, u32 type, type_t conditionVal, u32 conditionValType)
 			{
@@ -87,6 +91,16 @@ namespace engine
 				con.mConditionType = type;
 				con.mConditionVal = conditionVal;
 				con.mConditionValType = conditionValType;
+				// Check if the same condiiton already exists;
+				for (auto & i : mConditions)
+				{
+					if (i.mConditionType == type && i.mConditionVal == conditionVal && i.mConditionValType == conditionValType && i.mParam == p)
+					{
+						md_error("Condition exists!");
+						return;
+					}
+				}
+
 				mConditions.push_back(con);
 			}
 
@@ -94,6 +108,7 @@ namespace engine
 			f32 mDuration;
 			f32 mTimeElapsed;
 			b8 mHasExitTime;
+			graphics::TransitionType mType;
 			std::vector<condition_t> mConditions;
 			
 		};
@@ -142,7 +157,7 @@ namespace engine
 			const aiScene *mScene;
 
 			std::string mName;
-			f64 mTimeElapsed;	// Current time of animation in ticks
+			f32 mTimeElapsed;	// Current time of animation in ticks
 			f64 mStartTime;		// Time when animation started in ticks
 			f64 mDuration;
 
@@ -154,7 +169,7 @@ namespace engine
 
 		typedef std::map<std::string, anim_t*> Animations;
 		
-		class Model
+		class Model : private gui::Gui
 		{
 		public:
 
@@ -227,6 +242,7 @@ namespace engine
 
 			void BoneTransform(f64 timeInSeconds, std::vector<glm::mat4> &transforms)
 			{
+				RenderGUI();
 				aiMatrix4x4 identity = aiMatrix4x4();
 
 				updateCurrentAnimation();
@@ -255,6 +271,36 @@ namespace engine
 				returns : a pointer to the animation, which should be used as a next animation
 			*/
 				
+			void RenderGUI()
+			{
+				ImGui::ShowExampleAppCustomNodeGraph(&m_AnimationsLoaded);
+
+
+				ImGui::Begin("_DEBUG_");
+				ImGui::SetNextTreeNodeOpen("Animations");
+				if (ImGui::TreeNode("Animations") == true)
+				{
+					ImGui::Indent();
+					ImGui::AnimationController(&m_AnimationsLoaded);
+					//ImGui::ProgressBar("Animation Time: ", (m_CurrentScene->mTimeElapsed), 0.f, m_CurrentScene->mDuration);
+					if (m_CurrentTransition != nullptr)
+					{
+						//ImGui::ProgressBar("Transition Time: ", m_CurrentTransition->mTimeElapsed, 0.f, m_CurrentTransition->mDuration);
+
+						ImGui::AnimationController(&m_AnimationsLoaded);
+					}
+					else
+					{
+						//ImGui::ProgressBar("Transition Time: ", 0.f);
+					}
+					
+					ImGui::Unindent();
+					ImGui::TreePop();
+				}
+
+				ImGui::End();
+			}
+
 			anim_t *checkTransitionConditions(anim_t *scene)
 			{
 				/* Animation doesn't have any transitions, loop it. */
@@ -322,7 +368,7 @@ namespace engine
 							scene->mTimeElapsed + 1.f >= scene->mDuration && 
 							i.mHasExitTime)
 						{
-							debug::log("Animation: " + scene->mName + " has exit time.");
+							md_log("Animation: %s has exit time.", scene->mName.c_str());
 							ret = m_AnimWithExitTime;
 							m_AnimWithExitTime = nullptr;
 							return ret;
@@ -360,7 +406,7 @@ namespace engine
 
 				if (m_CurrentScene->mTimeElapsed + 1.f >= m_CurrentScene->mDuration)
 				{
-					debug::log("Animation changed to: " + playAnim->mName);
+					md_log("Animation changed to: %s", playAnim->mName.c_str());
 
 					ChangeAnimation(playAnim->mName);
 					

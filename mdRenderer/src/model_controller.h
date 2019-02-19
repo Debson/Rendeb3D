@@ -10,8 +10,6 @@ namespace engine
 {
 	namespace graphics
 	{
-		
-
 		class ModelController : private Model
 		{
 		public:
@@ -41,7 +39,7 @@ namespace engine
 
 			void SetParameter(std::string const &name, b8 val, b8 isTrigger = false);
 
-			void CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time);
+			void CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time, graphics::TransitionType type);
 
 			void SetTransitionExitTimeState(std::string const &firstAnim, std::string const &secondAnim, b8 val);
 

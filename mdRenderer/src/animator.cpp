@@ -44,17 +44,17 @@ namespace md
 		return m_Graphics->GetModelController()->GetTransition(first, second);
 	}
 
-	void engine::Animator::AddTransition(std::string const &firstAnim, std::string const &secondAnim, const f32 &time, TransitionType transType)
+	void engine::Animator::AddTransition(std::string const &firstAnim, std::string const &secondAnim, const f32 &time, graphics::TransitionType transType)
 	{
 		switch (transType)
 		{
-		case ONESIDED: {
-			m_Graphics->GetModelController()->CreateTransition(firstAnim, secondAnim, time);
+		case graphics::TransitionType::ONESIDED: {
+			m_Graphics->GetModelController()->CreateTransition(firstAnim, secondAnim, time, transType);
 			break;
 		}
-		case BILATERAL: {
-			m_Graphics->GetModelController()->CreateTransition(firstAnim, secondAnim, time);
-			m_Graphics->GetModelController()->CreateTransition(secondAnim, firstAnim, time);
+		case graphics::TransitionType::BILATERAL: {
+			m_Graphics->GetModelController()->CreateTransition(firstAnim, secondAnim, time, transType);
+			m_Graphics->GetModelController()->CreateTransition(secondAnim, firstAnim, time, transType);
 			break;
 		}
 		}

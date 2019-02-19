@@ -17,9 +17,20 @@ namespace md
 				f32 f;
 				s32 i;
 				b8 b : 1;
+
+				inline bool operator==(const type_t &rhs)
+				{
+					if(this->f == rhs.f || this->i == rhs.i || this->b == rhs.b)
+						return true;
+					return false;
+				}
 			};
 
-
+			enum TransitionType : u8
+			{
+				BILATERAL,
+				ONESIDED
+			};
 		}
 	}
 }

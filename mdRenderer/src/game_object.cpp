@@ -42,7 +42,7 @@ namespace md
 		if (m_RenderGui)
 		{
 			ImGui::Begin("_DEBUG_");
-			if (ImGui::TreeNode(m_Name.c_str()) == true)
+			if (ImGui::TreeNode(m_Name.c_str()))
 			{
 				ImGui::SliderFloat("Position X", &transform.position.x, -50.1f, 50.1f);
 				ImGui::SliderFloat("Position Y", &transform.position.y, -50.1f, 50.1f);
@@ -53,6 +53,7 @@ namespace md
 				ImGui::SliderFloat("Scale X", &transform.localScale.x, 0.f, 10.f);
 				ImGui::SliderFloat("Scale Y", &transform.localScale.y, 0.f, 10.f);
 				ImGui::SliderFloat("Scale Z", &transform.localScale.z, 0.f, 10.f);
+				ImGui::Unindent();
 				ImGui::TreePop();
 			}
 			ImGui::End();
