@@ -33,8 +33,9 @@ void md::Scene::OnWindowOpen()
 	m_Animator.AddAnimation("Goalkepper", "assets//Goalkeeper.fbx");
 	m_Animator.AddAnimation("Header", "assets//Header.fbx");
 	m_Animator.AddAnimation("Running", "assets//Running.fbx");
-
+	
 	m_Animator.AddTransition("Start", "Header", 10.f, engine::graphics::TransitionType::BILATERAL);
+	//m_Animator.AddTransition("Goalkepper", "Start", 10.f, engine::graphics::TransitionType::ONESIDED);
 	m_Animator.AddTransition("Start", "Goalkepper", 10.f, engine::graphics::TransitionType::ONESIDED);
 	m_Animator.AddTransition("Start", "Running", 10.f, engine::graphics::TransitionType::BILATERAL);
 
@@ -48,7 +49,7 @@ void md::Scene::OnWindowOpen()
 
 	m_Animator.SetTransitionExitTimeState("Start", "Running", false);
 	
-	m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", false);
+	m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", true);
 
 	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);;
 		

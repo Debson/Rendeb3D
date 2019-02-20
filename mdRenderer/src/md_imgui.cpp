@@ -90,7 +90,7 @@ namespace ImGui
 	// Note that we storing links are INDICES (not ID) to make example code shorter, obviously a bad idea for any general purpose code.
 
 
-	void ImGui::ShowExampleAppCustomNodeGraph(md::engine::graphics::Animations *animVec)
+	void ImGui::ShowExampleAppCustomNodeGraph(md::engine::graphics::Animations *animVec, md::engine::graphics::transition_t *currTrans)
 	{
 
 		// Dummy
@@ -188,7 +188,7 @@ namespace ImGui
 					links.push_back(NodeLink(animCounter, transCounter, outID, 0));
 					transCounter++;
 				}
-				
+
 				animCounter++;
 			}
 
@@ -256,6 +256,42 @@ namespace ImGui
 		// Display links
 		draw_list->ChannelsSplit(2);
 		draw_list->ChannelsSetCurrent(0); // Background
+		bool *drawn = new bool[links.Size];
+		memset(drawn, false, sizeof(bool) * links.Size);
+
+		int activeLinkID = -1;
+		int activeNodeFirstID = -1;
+		int activeNodeSecondID = -1;
+		if (currTrans)
+		{
+			for (auto & anim : *animVec)
+			{
+
+				for (auto & trans : anim.second->mTransitions)
+				{
+					if (currTrans == &trans)
+					{
+						auto it = find_if(animVec->begin(), animVec->end(), [&]
+						(std::pair<std::string, md::engine::graphics::anim_t*> const & ref) { return ref.first == anim.first; });
+						activeNodeFirstID = std::distance(animVec->begin(), it);
+						break;
+					}
+				}
+			}
+			for (auto & node : nodes)
+			{
+				if (currTrans->mNextAnimName == node.Name)
+					activeNodeSecondID = node.ID;
+			}
+		}
+
+		for (int i = 0; i < links.Size; i++)
+		{
+			if (links[i].InputIdx == activeNodeFirstID && links[i].OutputIdx == activeNodeSecondID)
+				activeLinkID = i;
+		}
+
+
 		for (int link_idx = 0; link_idx < links.Size; link_idx++)
 		{
 			NodeLink* link = &links[link_idx];
@@ -268,34 +304,190 @@ namespace ImGui
 			bool singleTransitionLine = true;
 			for (int i = 0; i < links.Size; i++)
 			{
-				if (links[i].OutputIdx == link->InputIdx && node_out->Slots > 1)
+				if (links[i].OutputIdx == link->InputIdx && node_out->Slots > 1 && (!drawn[link_idx] && !drawn[i]))
 				{
+
+					
 					// out = red
 					// in = yellow
+					float h = -6;
+					float a = 8.f;
+					ImVec2 p1_space = p1 + ImVec2(spacing, spacing);
+					ImVec2 p2_space = p2 + ImVec2(spacing, spacing);
+					ImVec2 centre = distance(p1_space, p2_space);
+					// Triangle height and base/2 dimensions
+					// Coordinates of triangle
+					ImVec2 pa, pb, pc;
+					// Create a vector from two points
+					ImVec2 vec = p2_space - p1_space;
+					// That's a vector parallel to OX
+					ImVec2 vecOX(INT_MAX, 0);
+					// cos(x) = (a * b) / sqrt(a^2) * sqrt(b^2)    where a and b are vectors that angle between them need to be found
+					float ab = vec.x * vecOX.x + vec.y + vecOX.y;
+					float a_length = sqrt(vec.x * vec.x + vec.y * vec.y);
+					float b_length = sqrt(vecOX.x * vecOX.x + vecOX.y * vecOX.y);
+					float cos = ab / (a_length * b_length);
+					// Calculate A, bcoordinates
+					pa = centre + ImVec2(-a * sqrt(1 - cos * cos), (p1_space.y < centre.y ? 1 : -1) * a * cos);
+					pb = centre + ImVec2(a * sqrt(1 - cos * cos), (p1_space.y < centre.y ? -1 : 1) * a * cos);
+					// Calculate C coordinate
+					float dist = sqrt((p2_space.x - p1_space.x) * (p2_space.x - p1_space.x) + (p2_space.y - p1_space.y) * (p2_space.y - p1_space.y));
+					pc.x = centre.x + (h / dist) * (p2_space.x - p1_space.x);
+					pc.y = centre.y + (h / dist) * (p2_space.y - p1_space.y);
 					
-					draw_list->AddLine(p1 + ImVec2(spacing, spacing), p2 + ImVec2(spacing, spacing), IM_COL32(255, 0, 0, 255), 2.0f);
-					draw_list->AddLine(p1 + ImVec2(-spacing, -spacing), p2 + ImVec2(-spacing, -spacing), IM_COL32(200, 200, 100, 255), 2.0f);
+					pa.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
+					pa.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
+
+					pb.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
+					pb.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
+
+					draw_list->AddLine(p1_space, p2_space, IM_COL32(255, 0, 0, 255), 2.0f);
+
+					if (i == activeLinkID)
+					{
+						float p = currTrans->mTimeElapsed / currTrans->mDuration;
+						p1_space.x = p2_space.x - p * (p2_space.x - p1_space.x);
+						p1_space.y = p2_space.y - p * (p2_space.y - p1_space.y);
+						draw_list->AddLine(p1_space, p2_space, IM_COL32(0, 255, 0, 255), 2.0f);
+
+						md_log("out! %f", p);
+					}
+					
+					draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
+
+
+					p1_space = p1 + ImVec2(-spacing, -spacing);
+					p2_space = p2 + ImVec2(-spacing, -spacing);
+					h *= -1;
+					centre = distance(p1_space, p2_space);
+					// Triangle height and base/2 dimensions
+				
+					// Create a vector from two points
+					vec = p2_space - p1_space;
+					
+					// cos(x) = (a * b) / sqrt(a^2) * sqrt(b^2)    where a and b are vectors that angle between them need to be found
+					ab = vec.x * vecOX.x + vec.y + vecOX.y;
+					a_length = sqrt(vec.x * vec.x + vec.y * vec.y);
+					b_length = sqrt(vecOX.x * vecOX.x + vecOX.y * vecOX.y);
+					cos = ab / (a_length * b_length);
+					// Calculate A, bcoordinates
+					pa = centre + ImVec2(-a * sqrt(1 - cos * cos), (p1_space.y < centre.y ? 1 : -1) * a * cos);
+					pb = centre + ImVec2(a * sqrt(1 - cos * cos), (p1_space.y < centre.y ? -1 : 1) * a * cos);
+					// Calculate C coordinate
+					dist = sqrt((p2_space.x - p1_space.x) * (p2_space.x - p1_space.x) + (p2_space.y - p1_space.y) * (p2_space.y - p1_space.y));
+					pc.x = centre.x + (h / dist) * (p2_space.x - p1_space.x);
+					pc.y = centre.y + (h / dist) * (p2_space.y - p1_space.y);
+
+
+					pa.x -= (2.5f *h  / dist) * (p2_space.x - p1_space .x);
+					pa.y -= (2.5f *h / dist) * (p2_space.y - p1_space.y);
+
+					pb.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
+					pb.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
+
+					draw_list->AddLine(p1_space , p2_space, IM_COL32(200, 200, 100, 255), 2.0f);
+
+					// Draw transition progress
+					
+					if (link_idx == activeLinkID)
+					{
+						float p = currTrans->mTimeElapsed / currTrans->mDuration;
+						p2_space.x = p1_space.x + (p * dist / dist) * (p2_space.x - p1_space.x);
+						p2_space.y = p1_space.y + (p * dist / dist) * (p2_space.y - p1_space.y);
+						draw_list->AddLine(p1_space, p2_space, IM_COL32(0, 255, 0, 255), 2.0f);
+
+						md_log("in! %f", p);
+					}
+					
+					draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
+
+
+					drawn[link_idx] = true;
+					drawn[i] = true;
+
 					singleTransitionLine = false;
 					break;
 				}
 			}
-			if (singleTransitionLine)
+			if (singleTransitionLine && !drawn[link_idx])
 			{
-				ImVec4 color(200, 200, 100, 255);
-				if (animVec->at(node_out->Name)->mTransitions.empty())
-					color = ImVec4(255, 0, 0, 255);
+				ImVec4 color(255, 0, 0, 255);
+				float h = 6;
+				float a = 8.f;
+				auto anim = animVec->at(node_out->Name);
+				bool isOut = true;
+				for (auto & trans : anim->mTransitions)
+				{
+					if (trans.mNextAnimName == anim->mName)
+					{
+						isOut = false;
+						break;
+					}
+				}
+				if (anim->mTransitions.empty())
+					isOut = false;
+				if (isOut)
+				{
+					color = ImVec4(200, 200, 100, 255);
+				}
+
 				draw_list->AddLine(p1, p2, IM_COL32(color.x, color.y, color.z, color.w), 2.0f);
+
+				// Calculate the coordinates of centre between two points;
 				ImVec2 centre = distance(p1, p2);
-				float h = 15;
-				float a = 10;
-				float tga = (p1.y - p2.y) / (p1.x - p2.x);
-				ImVec2 pa = centre + ImVec2(a / 2.f, 0.f);
-				ImVec2 pb = centre - ImVec2(a / 2.f, 0.f);
-				ImVec2 pc = centre + ImVec2(0.f, -h);
-				draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 150));
+				// Triangle height and base/2 dimensions
+				// Coordinates of triangle
+				ImVec2 pa, pb, pc;
+				// Create a vector from two points
+				ImVec2 vec = p2 - p1;
+				// That's a vector parallel to OX
+				ImVec2 vecOX(INT_MAX, 0);
+				// cos(x) = (a * b) / sqrt(a^2) * sqrt(b^2)    where a and b are vectors that angle between them need to be found
+				float ab = vec.x * vecOX.x + vec.y + vecOX.y;
+				float a_length = sqrt(vec.x * vec.x + vec.y * vec.y);
+				float b_length = sqrt(vecOX.x * vecOX.x + vecOX.y * vecOX.y);
+				float cos = ab / (a_length * b_length);
+				// Calculate A, bcoordinates
+				pa = centre + ImVec2(-a * sqrt(1 - cos * cos), (p1.y < centre.y ? 1 : -1) * a * cos);
+				pb = centre + ImVec2(a * sqrt(1 - cos * cos), (p1.y < centre.y ? -1 : 1) * a * cos);
+				// Calculate C coordinate
+				float dist = sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
+
+				pa.x -= (2.5 * h / dist) * (p2.x - p1.x);
+				pa.y -= (2.5 * h / dist) * (p2.y - p1.y);
+
+				pb.x -= (2.5 * h / dist) * (p2.x - p1.x);
+				pb.y -= (2.5 * h / dist) * (p2.y - p1.y);
+
+				pc.x = centre.x + (h / dist) * (p2.x - p1.x);
+				pc.y = centre.y + (h / dist) * (p2.y - p1.y);
+
+				/*		C
+				       / \
+					  /	  \
+					 /	   \
+					A-------B
+					Triangle
+				*/
+
+				drawn[link_idx] = true;
+				draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
+
+				// Draw transition progress
+				if (link_idx == activeLinkID)
+				{
+					float p = currTrans->mTimeElapsed / currTrans->mDuration;
+					p2.x = p1.x + (p * dist / dist) * (p2.x - p1.x);
+					p2.y = p1.y + (p * dist / dist) * (p2.y - p1.y);
+					draw_list->AddLine(p1, p2, IM_COL32(0, 255, 0, 255), 2.0f);
+
+					md_log("out! %f", p);
+				}
 			}
-		
+
 		}
+
+		delete drawn;
 
 		// Display nodes
 		for (int node_idx = 0; node_idx < nodes.Size; node_idx++)

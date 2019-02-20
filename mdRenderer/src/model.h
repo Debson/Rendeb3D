@@ -273,7 +273,7 @@ namespace engine
 				
 			void RenderGUI()
 			{
-				ImGui::ShowExampleAppCustomNodeGraph(&m_AnimationsLoaded);
+				ImGui::ShowExampleAppCustomNodeGraph(&m_AnimationsLoaded, m_CurrentTransition);
 
 
 				ImGui::Begin("_DEBUG_");

@@ -14,6 +14,7 @@ namespace engine
 	{
 		struct anim_t;
 		typedef std::map<std::string, anim_t*> Animations;
+		struct transition_t;
 	}
 }
 }
@@ -30,7 +31,7 @@ namespace ImGui {
 		const ImVec4& colorLeft = ImVec4(0.0, 0.0, 0.0, 0.5), const ImVec4& colorRight = ImVec4(0.0, 0.0, 0.0, 0.5), const ImVec4& colorBorder = ImVec4(1.0, 0.0, 0.0, 0.8));
 
 
-	void ShowExampleAppCustomNodeGraph(md::engine::graphics::Animations *animVec);
+	void ShowExampleAppCustomNodeGraph(md::engine::graphics::Animations *animVec, md::engine::graphics::transition_t *currTrans);
 
 	void TestProgressBar();
 }
