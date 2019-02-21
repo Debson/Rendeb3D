@@ -3,114 +3,43 @@
 #include "model.h"
 #include "debug.h"
 #include "graphics_types.h"
+#include "md_imgui_parser.h"
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "../external/imgui/imgui_internal.h"
+
+
+#include <math.h>
 
 namespace ImGui 
 {
-
-	float ProgressBar(const char *optionalPrefixText, float value, const float minValue, const float maxValue, const char *format, const ImVec2 &sizeOfBarWithoutTextInPixels, const ImVec4 &colorLeft, const ImVec4 &colorRight, const ImVec4 &colorBorder) 
+	// Dummy
+	struct Node
 	{
-		if (value < minValue) value = minValue;
-		else if (value > maxValue) value = maxValue;
-		const float valueFraction = (maxValue == minValue) ? 1.0f : ((value - minValue) / (maxValue - minValue));
-		const bool needsPercConversion = strstr(format, "%%") != NULL;
+		int     ID;
+		char    Name[32];
+		ImVec2  Pos, Size;
+		float   Value;
+		ImVec4  Color;
+		int		Slots;
 
-		ImVec2 size = sizeOfBarWithoutTextInPixels;
-		if (size.x <= 0) size.x = ImGui::GetWindowWidth()*0.25f;
-		if (size.y <= 0) size.y = ImGui::GetTextLineHeightWithSpacing(); // or without
-
-		const ImFontAtlas* fontAtlas = ImGui::GetIO().Fonts;
-
-		if (optionalPrefixText && strlen(optionalPrefixText) > 0) {
-			ImGui::AlignFirstTextHeightToWidgets();
-			ImGui::Text(optionalPrefixText);
-			ImGui::SameLine();
+		Node(int id, const char* name, const ImVec2& pos, float value, const ImVec4& color, int slotsCount) {
+			ID = id; strncpy_s(Name, name, 31); Name[31] = 0; Pos = pos; Value = value; Color = color; Slots = slotsCount;
+			
 		}
 
-		if (valueFraction > 0) {
-			ImGui::Image(fontAtlas->TexID, ImVec2(size.x*valueFraction, size.y), fontAtlas->TexUvWhitePixel, fontAtlas->TexUvWhitePixel, colorLeft, colorBorder);
-		}
-		if (valueFraction < 1) {
-			if (valueFraction > 0) ImGui::SameLine(0, 0);
-			ImGui::Image(fontAtlas->TexID, ImVec2(size.x*(1.f - valueFraction), size.y), fontAtlas->TexUvWhitePixel, fontAtlas->TexUvWhitePixel, colorRight, colorBorder);
-		}
-		ImGui::SameLine();
-
-		ImGui::Text(format, needsPercConversion ? (valueFraction*100.f + 0.0001f) : value);
-		return valueFraction;
-	}
-
-	void ImGui::AnimationController(md::engine::graphics::Animations const *animVec, const char *format, const ImVec2 &sizeOfBarWithoutTextInPixels, const ImVec4 &colorLeft, const ImVec4 &colorRight, const ImVec4 &colorBorder)
-	{
-		
-		const float valueFraction = 0.5f;
-		const bool needsPercConversion = strstr(format, "%%") != NULL;
-
-		ImVec2 size(400, 400);
-		if (size.x <= 0) size.x = ImGui::GetWindowWidth()*0.25f;
-		if (size.y <= 0) size.y = ImGui::GetTextLineHeightWithSpacing(); // or without
-
-		const ImFontAtlas* fontAtlas = ImGui::GetIO().Fonts;
-
-		std::string txt = "test";
-		if (txt.c_str() && strlen(txt.c_str()) > 0) {
-			ImGui::AlignFirstTextHeightToWidgets();
-			ImGui::Text(txt.c_str());
-			ImGui::SameLine();
-		}
-
-		ImVec4 col(0.0, 0.0, 0.0, 0.5);
-		ImVec4 colBorder(1.0, 0.0, 0.0, 0.5);
-		
-		// Draw Frame
-		ImGui::BeginChild("Test", size, true);
-		ImVec2 winPos = ImGui::GetWindowPos();
-		ImVec2 p(100 + winPos.x, 180 + winPos.y);
-		ImGui::GetWindowDrawList()->AddLine(p, ImVec2(p.x + 50, p.y + 50), IM_COL32(255, 0, 0, 255), 3.0f);
-		ImGui::GetWindowDrawList()->AddCircle(p, 50.f, IM_COL32(255, 0, 0, 255), 36);
-
-		ImGui::EndChild();
-
-
-
-		
-	}
-
-#include <math.h> // fmodf
-
-	// NB: You can use math functions/operators on ImVec2 if you #define IMGUI_DEFINE_MATH_OPERATORS and #include "imgui_internal.h"
-	// Here we only declare simple +/- operators so others don't leak into the demo code.
-	static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
-	static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
+		ImVec2 GetInputSlotPos(int slot_no) const { return ImVec2(Pos.x + Size.x / 2.f, Pos.y + Size.y / 2.f); }
+		ImVec2 GetOutputSlotPos(int slot_no) const { return ImVec2(Pos.x + Size.x / 2.f, Pos.y + Size.y / 2.f); }
+	};
+	static ImVector<Node> nodes;
 
 	static inline ImVec2 distance(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2((lhs.x + rhs.x) / 2.f, (lhs.y + rhs.y) / 2.f); }
-
-
 
 	// Really dumb data structure provided for the example.
 	// Note that we storing links are INDICES (not ID) to make example code shorter, obviously a bad idea for any general purpose code.
 
-
-	void ImGui::ShowExampleAppCustomNodeGraph(md::engine::graphics::Animations *animVec, md::engine::graphics::transition_t *currTrans)
+	void ImGui::AnimationController(md::engine::graphics::Animations *animVec, md::engine::graphics::transition_t *currTrans)
 	{
-
-		// Dummy
-		struct Node
-		{
-			int     ID;
-			char    Name[32];
-			ImVec2  Pos, Size;
-			float   Value;
-			ImVec4  Color;
-			int		Slots;
-
-			Node(int id, const char* name, const ImVec2& pos, float value, const ImVec4& color, int slotsCount) {
-				ID = id; strncpy_s(Name, name, 31); Name[31] = 0; Pos = pos; Value = value; Color = color; Slots = slotsCount;
-				
-			}
-
-			ImVec2 GetInputSlotPos(int slot_no) const { return ImVec2(Pos.x + Size.x / 2.f, Pos.y + Size.y / 2.f); }
-			ImVec2 GetOutputSlotPos(int slot_no) const { return ImVec2(Pos.x + Size.x / 2.f, Pos.y + Size.y / 2.f); }
-		};
 
 		struct NodeLink
 		{
@@ -121,14 +50,13 @@ namespace ImGui
 		};
 
 		ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiSetCond_FirstUseEver);
-		if (!ImGui::Begin("Example: Custom Node Graph"))
+		std::string windowName = "Example: Custom Node Graph";
+		if (!ImGui::Begin(windowName.c_str()))
 		{
 			ImGui::End();
 			return;
 		}
-		
 
-		static ImVector<Node> nodes;
 		static ImVector<NodeLink> links;
 		static bool inited = false;
 		static ImVec2 scrolling = ImVec2(0.0f, 0.0f);
@@ -157,20 +85,29 @@ namespace ImGui
 				animCounter++;
 			}
 
-			for (size_t i = 0; i < (*animVec).size(); i++)
-			{
-				md_log("%d", slots[i]);
-			}
-
 			animCounter = 0;
 			ImVec2 startPos(40, 50);
+			Config::BeginConfig(windowName);
 			for (auto & i : *animVec)
 			{
-				nodes.push_back(Node(animCounter, i.first.c_str(), ImVec2(startPos.x, startPos.y), 0.5f, ImColor(255, 100, 100), slots[animCounter]));
+				ImVec2 pos;
+				if(Config::ReadVec2(i.first, &pos))
+				{ 
+					nodes.push_back(Node(animCounter, i.first.c_str(), pos, 0.5f, ImColor(255, 100, 100), slots[animCounter]));
+				}
+				else
+				{
+					nodes.push_back(Node(animCounter, i.first.c_str(), startPos, 0.5f, ImColor(255, 100, 100), slots[animCounter]));
+					Config::SaveVec2(i.first, startPos);
+					startPos.y += 100.f;
+				}
 
-				startPos.y += 100.f;
 				animCounter++;
 			}
+			Config::EndConfig();
+			Config::UpdateConfig();
+
+			delete slots;
 
 			animCounter = 0;
 			for (auto & i : *animVec)
@@ -192,11 +129,6 @@ namespace ImGui
 				animCounter++;
 			}
 
-			/*nodes.push_back(Node(0, "MainTex", ImVec2(40, 50), 0.5f, ImColor(255, 100, 100), 1, 1));
-			nodes.push_back(Node(1, "BumpMap", ImVec2(40, 150), 0.42f, ImColor(200, 100, 200), 1, 1));
-			nodes.push_back(Node(2, "Combine", ImVec2(270, 80), 1.0f, ImColor(0, 200, 100), 2, 2));
-			links.push_back(NodeLink(0, 0, 2, 0));
-			links.push_back(NodeLink(1, 0, 2, 1));*/
 			inited = true;
 		}
 
@@ -262,11 +194,12 @@ namespace ImGui
 		int activeLinkID = -1;
 		int activeNodeFirstID = -1;
 		int activeNodeSecondID = -1;
+
+		// Process of finding active link, when transition is playing
 		if (currTrans)
 		{
 			for (auto & anim : *animVec)
 			{
-
 				for (auto & trans : anim.second->mTransitions)
 				{
 					if (currTrans == &trans)
@@ -291,7 +224,6 @@ namespace ImGui
 				activeLinkID = i;
 		}
 
-
 		for (int link_idx = 0; link_idx < links.Size; link_idx++)
 		{
 			NodeLink* link = &links[link_idx];
@@ -306,8 +238,6 @@ namespace ImGui
 			{
 				if (links[i].OutputIdx == link->InputIdx && node_out->Slots > 1 && (!drawn[link_idx] && !drawn[i]))
 				{
-
-					
 					// out = red
 					// in = yellow
 					float h = -6;
@@ -355,7 +285,6 @@ namespace ImGui
 					
 					draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
 
-
 					p1_space = p1 + ImVec2(-spacing, -spacing);
 					p2_space = p2 + ImVec2(-spacing, -spacing);
 					h *= -1;
@@ -401,7 +330,6 @@ namespace ImGui
 					
 					draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
 
-
 					drawn[link_idx] = true;
 					drawn[i] = true;
 
@@ -409,6 +337,7 @@ namespace ImGui
 					break;
 				}
 			}
+
 			if (singleTransitionLine && !drawn[link_idx])
 			{
 				ImVec4 color(255, 0, 0, 255);
@@ -467,7 +396,7 @@ namespace ImGui
 					  /	  \
 					 /	   \
 					A-------B
-					Triangle
+					Direction triangle
 				*/
 
 				drawn[link_idx] = true;
@@ -484,7 +413,6 @@ namespace ImGui
 					md_log("out! %f", p);
 				}
 			}
-
 		}
 
 		delete drawn;
@@ -502,8 +430,12 @@ namespace ImGui
 			ImGui::SetCursorScreenPos(node_rect_min + NODE_WINDOW_PADDING);
 			ImGui::BeginGroup(); // Lock horizontal position
 			ImGui::Text("%s", node->Name);
-			ImGui::SliderFloat("##value", &node->Value, 0.0f, 1.0f, "Alpha %.2f");
-			ImGui::ColorEdit3("##color", &node->Color.x);
+			/*ImGui::SliderFloat("##value", &node->Value, 0.0f, 1.0f, "Alpha %.2f");
+			ImGui::ColorEdit3("##color", &node->Color.x);*/
+			auto anim = animVec->at(node->Name);
+			float progress = anim->mTimeElapsed / anim->mDuration;
+			ImGui::ProgressBar(progress, ImVec2(150, 20.f));
+			ImGui::Text("Transition count: %d", anim->mTransitions.size());
 			ImGui::EndGroup();
 
 			// Save the size of what we have emitted and whether any of the widgets are being used
@@ -524,8 +456,14 @@ namespace ImGui
 			if (node_widgets_active || node_moving_active)
 				node_selected = node->ID;
 			if (node_moving_active && ImGui::IsMouseDragging(0))
+			{
 				node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
-
+				ImGui::Config::BeginConfig(windowName);
+				ImGui::Config::SaveVec2(node->Name, node->Pos);
+				ImGui::Config::EndConfig();
+				ImGui::Config::UpdateConfig();
+			}
+			
 			ImU32 node_bg_color = (node_hovered_in_list == node->ID || node_hovered_in_scene == node->ID || (node_hovered_in_list == -1 && node_selected == node->ID)) ? IM_COL32(75, 75, 75, 255) : IM_COL32(60, 60, 60, 255);
 			draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
 			draw_list->AddRect(node_rect_min, node_rect_max, IM_COL32(100, 100, 100, 255), 4.0f);
@@ -611,16 +549,5 @@ namespace ImGui
 			//for (auto j : i.Slots)
 				//delete j;
 		}
-	}
-
-
-	void TestProgressBar() {
-		static float progress = 0; static float progressSign = 1.f;
-		progress += progressSign * .0001f; if (progress >= 1.f || progress <= 0.f) progressSign *= -1.f;
-		// No IDs needed for ProgressBars:
-		ImGui::ProgressBar("ProgressBar", progress);
-		ImGui::ProgressBar("ProgressBar", 1.f - progress);
-		ImGui::ProgressBar("", 500 + progress * 1000, 500, 1500, "%4.0f (absolute value in [500,1500] and fixed bar size)", ImVec2(150, -1));
-		ImGui::ProgressBar("", 500 + progress * 1000, 500, 1500, "%3.0f%% (same as above, but with percentage and new colors)", ImVec2(150, -1), ImVec4(0.7, 0.7, 1, 1), ImVec4(0.05, 0.15, 0.5, 0.8), ImVec4(0.8, 0.8, 0, 1));
 	}
 }

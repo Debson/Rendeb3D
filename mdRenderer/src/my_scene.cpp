@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "md_imgui_parser.h"
+
 
 md::Scene::~Scene()
 {
@@ -49,7 +51,7 @@ void md::Scene::OnWindowOpen()
 
 	m_Animator.SetTransitionExitTimeState("Start", "Running", false);
 	
-	m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", true);
+	m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", false);
 
 	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);;
 		
@@ -152,6 +154,20 @@ void md::Scene::UpdateScene()
 	float speed = input::GetAxis("vertical");
 	m_Animator.SetFloat("Speed", speed);
 	//std::cout << speed << std::endl;
+
+	// Parser tests
+	/*ImGui::Config::BeginConfig("_DEBUG_");
+	ImGui::Config::SaveFloat("test", 15.f);
+	ImGui::Config::SaveFloat("lol", 15.f);
+	ImGui::Config::SaveVec2("xd", ImVec2(24.f, 1.f));
+	float test = 0.f;
+	ImVec2 vec;
+	ImGui::Config::ReadFloat("test", &test);
+	ImGui::Config::ReadVec2("xd", &vec);
+	
+	ImGui::Config::EndConfig();
+
+	ImGui::Config::UpdateConfig();*/
 
 }
 

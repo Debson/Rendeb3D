@@ -230,6 +230,7 @@ namespace engine
 					m_PreviousScene = m_CurrentScene;
 					m_CurrentScene = m_AnimationsLoaded[name];
 					m_CurrentScene->Reset();
+					m_PreviousScene->Reset();
 					if(m_PreviousScene->mName != m_CurrentScene->mName)
 						m_CurrentTransition = m_PreviousScene->FindTransition(m_CurrentScene->mName);
 					assert(m_CurrentScene != nullptr);
@@ -273,29 +274,16 @@ namespace engine
 				
 			void RenderGUI()
 			{
-				ImGui::ShowExampleAppCustomNodeGraph(&m_AnimationsLoaded, m_CurrentTransition);
-
-
 				ImGui::Begin("_DEBUG_");
-				ImGui::SetNextTreeNodeOpen("Animations");
-				if (ImGui::TreeNode("Animations") == true)
+				//ImGui::SetNextTreeNodeOpen("Animations");
+				static bool animatorActive = true;
+				if (ImGui::Button("Display Animator Window") == true)
 				{
-					ImGui::Indent();
-					ImGui::AnimationController(&m_AnimationsLoaded);
-					//ImGui::ProgressBar("Animation Time: ", (m_CurrentScene->mTimeElapsed), 0.f, m_CurrentScene->mDuration);
-					if (m_CurrentTransition != nullptr)
-					{
-						//ImGui::ProgressBar("Transition Time: ", m_CurrentTransition->mTimeElapsed, 0.f, m_CurrentTransition->mDuration);
-
-						ImGui::AnimationController(&m_AnimationsLoaded);
-					}
-					else
-					{
-						//ImGui::ProgressBar("Transition Time: ", 0.f);
-					}
-					
-					ImGui::Unindent();
-					ImGui::TreePop();
+					animatorActive = !animatorActive;
+				}
+				if (animatorActive)
+				{
+					ImGui::AnimationController(&m_AnimationsLoaded, m_CurrentTransition);
 				}
 
 				ImGui::End();
@@ -815,7 +803,6 @@ namespace engine
 
 				return nullptr;
 			}
-
 
 			void loadModel(std::string const &path)
 			{
