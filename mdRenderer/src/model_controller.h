@@ -57,7 +57,7 @@ namespace engine
 
 			void SetCurrentAnimation(std::string const &name);
 
-			anim_t *GetAnimation(std::string const &name);
+			std::shared_ptr<graphics::anim_t> GetAnimation(std::string const &name);
 
 			transition_t *GetTransition(std::string const &first, std::string const &second);
 

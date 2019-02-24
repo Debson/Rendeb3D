@@ -167,26 +167,20 @@ namespace engine
 			std::vector<transition_t> mTransitions;
 		};
 
-		typedef std::map<std::string, anim_t*> Animations;
+		typedef std::map<std::string, std::shared_ptr<anim_t>> Animations;
 		
 		class Model : private gui::Gui
 		{
 		public:
 
 			Model(std::string const &path, bool gamma = false) :
-				m_BoneCount(0), m_VerticesCount(0), m_hasBones(false), m_Path(path), m_AnimWithExitTime(nullptr)
+				m_BoneCount(0), m_VerticesCount(0), m_hasBones(false), m_Path(path)
 			{
 				loadModel(path);
 				std::cout << "Model\n";
 			}
 			
-			virtual ~Model() 
-			{ 
-				for (auto & anim : m_AnimationsLoaded)
-				{
-					delete anim.second;
-				}
-			}
+			virtual ~Model() { }
 
 			void Draw(Shader *shader)
 			{
@@ -214,9 +208,9 @@ namespace engine
 
 			void loadAnim(std::string const &name, std::string const &path)
 			{
-				anim_t *anim = new anim_t(name, path);
+				//anim_t *anim = new anim_t(name, path);
 				
-				m_AnimationsLoaded.insert(std::make_pair(name, anim));
+				m_AnimationsLoaded.insert(std::make_pair(name, std::make_shared<anim_t>(name, path)));
 			}
 
 			/*	@param name		-> name of next animation
@@ -246,6 +240,7 @@ namespace engine
 				RenderGUI();
 				aiMatrix4x4 identity = aiMatrix4x4();
 
+				updateCurrentTransition();
 				updateCurrentAnimation();
 				
 				ReadNodeHierarchy(m_CurrentScene->mTimeElapsed, m_CurrentScene->mScene->mRootNode, identity);
@@ -261,12 +256,13 @@ namespace engine
 
 		private:
 
-			u32				m_BoneCount;
-			u32				m_VerticesCount;
-			anim_t			*m_CurrentScene;
-			anim_t			*m_PreviousScene;
-			transition_t	*m_CurrentTransition;
-			anim_t			*m_AnimWithExitTime;
+			u32						m_BoneCount;
+			u32						m_VerticesCount;
+			std::shared_ptr<anim_t>	m_CurrentScene;
+			std::shared_ptr<anim_t>	m_PreviousScene;
+			
+			transition_t			*m_CurrentTransition;
+			std::shared_ptr<anim_t>	m_AnimWithExitTime;
 
 			/*	@param 'scene' : either m_CurrentScene or m_PreviousScene
 				returns : a pointer to the animation, which should be used as a next animation
@@ -289,13 +285,13 @@ namespace engine
 				ImGui::End();
 			}
 
-			anim_t *checkTransitionConditions(anim_t *scene)
+			std::shared_ptr<anim_t> checkTransitionConditions(std::shared_ptr<anim_t> &scene)
 			{
 				/* Animation doesn't have any transitions, loop it. */
 				if (scene->mTransitions.empty())
 					return scene;
 				
-				anim_t *ret = scene;
+				auto ret = scene;
 				u32 conditionCounter = 0;
 				for (auto & i : scene->mTransitions)
 				{
@@ -384,8 +380,8 @@ namespace engine
 
 			void updateCurrentAnimation()
 			{
-				anim_t *playAnim;
-				playAnim = checkTransitionConditions(m_CurrentScene);
+				
+				auto playAnim = checkTransitionConditions(m_CurrentScene);
 
 				if (playAnim != m_CurrentScene)
 				{
@@ -408,10 +404,14 @@ namespace engine
 
 			void updateCurrentTransition()
 			{
+				if (m_CurrentTransition == nullptr)
+					return;
+
 				if (m_CurrentTransition->mTimeElapsed > m_CurrentTransition->mDuration)
 				{
 					m_CurrentTransition = nullptr;
 					m_PreviousScene->mInterp = 0.f;
+					//m_PreviousScene->Reset();
 				}
 				else
 				{
@@ -424,6 +424,7 @@ namespace engine
 								   \=====\========	Second animation timeline 
 
 					*/
+					
 					m_CurrentScene->mCurrTime += (time::DeltaTime * m_CurrentScene->mScene->mAnimations[0]->mTicksPerSecond);
 					//debug::log(m_CurrentScene->mCurrTime);
 					m_PreviousScene->mInterp = 1.f / m_CurrentTransition->mDuration * m_CurrentTransition->mTimeElapsed;
@@ -752,14 +753,13 @@ namespace engine
 
 				if (nodeAnim && prevNodeAnim && m_CurrentTransition)
 				{
-						matScale = CalcInterpolatedScalingTransition(animTime, nodeAnim, prevNodeAnim);
+					matScale = CalcInterpolatedScalingTransition(animTime, nodeAnim, prevNodeAnim);
 
-						matRotation = CalcInterploatedRotationTransition(animTime, nodeAnim, prevNodeAnim);
+					matRotation = CalcInterploatedRotationTransition(animTime, nodeAnim, prevNodeAnim);
 
-						matTranslation = CalcInterpolatedPositionTransition(animTime, nodeAnim, prevNodeAnim);
-						updateCurrentTransition();
+					matTranslation = CalcInterpolatedPositionTransition(animTime, nodeAnim, prevNodeAnim);
 
-						nodeTransformation = matTranslation * matRotation * matScale;
+					nodeTransformation = matTranslation * matRotation * matScale;
 				}
 				else if(nodeAnim && m_CurrentTransition == nullptr)
 				{

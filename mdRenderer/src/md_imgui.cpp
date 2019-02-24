@@ -72,7 +72,7 @@ namespace ImGui
 				int slotsCount = 0;
 				for (auto & t : i.second->mTransitions)
 				{
-					auto it = std::find_if(animVec->begin(), animVec->end(), [&](std::pair<std::string, md::engine::graphics::anim_t*> const & ref)
+					auto it = std::find_if(animVec->begin(), animVec->end(), [&](std::pair<std::string, std::shared_ptr<md::engine::graphics::anim_t>> const & ref)
 					{ return ref.first == t.mNextAnimName; });
 					if (it != animVec->end())
 					{
@@ -188,8 +188,8 @@ namespace ImGui
 		// Display links
 		draw_list->ChannelsSplit(2);
 		draw_list->ChannelsSetCurrent(0); // Background
-		bool *drawn = new bool[links.Size];
-		memset(drawn, false, sizeof(bool) * links.Size);
+		std::vector<bool> drawn(links.Size);
+
 
 		int activeLinkID = -1;
 		int activeNodeFirstID = -1;
@@ -205,7 +205,7 @@ namespace ImGui
 					if (currTrans == &trans)
 					{
 						auto it = find_if(animVec->begin(), animVec->end(), [&]
-						(std::pair<std::string, md::engine::graphics::anim_t*> const & ref) { return ref.first == anim.first; });
+						(std::pair<std::string, std::shared_ptr<md::engine::graphics::anim_t>> const & ref) { return ref.first == anim.first; });
 						activeNodeFirstID = std::distance(animVec->begin(), it);
 						break;
 					}
@@ -271,7 +271,7 @@ namespace ImGui
 					pb.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
 					pb.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
 
-					draw_list->AddLine(p1_space, p2_space, IM_COL32(255, 0, 0, 255), 2.0f);
+					draw_list->AddLine(p1_space, p2_space, IM_COL32(150, 150, 150, 255), 2.0f);
 
 					if (i == activeLinkID)
 					{
@@ -314,7 +314,7 @@ namespace ImGui
 					pb.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
 					pb.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
 
-					draw_list->AddLine(p1_space , p2_space, IM_COL32(200, 200, 100, 255), 2.0f);
+					draw_list->AddLine(p1_space , p2_space, IM_COL32(150, 150, 150, 255), 2.0f);
 
 					// Draw transition progress
 					
@@ -340,11 +340,11 @@ namespace ImGui
 
 			if (singleTransitionLine && !drawn[link_idx])
 			{
-				ImVec4 color(255, 0, 0, 255);
+				ImVec4 color(150, 150, 150, 255);
 				float h = 6;
 				float a = 8.f;
 				auto anim = animVec->at(node_out->Name);
-				bool isOut = true;
+				/*bool isOut = true;
 				for (auto & trans : anim->mTransitions)
 				{
 					if (trans.mNextAnimName == anim->mName)
@@ -358,7 +358,7 @@ namespace ImGui
 				if (isOut)
 				{
 					color = ImVec4(200, 200, 100, 255);
-				}
+				}*/
 
 				draw_list->AddLine(p1, p2, IM_COL32(color.x, color.y, color.z, color.w), 2.0f);
 
@@ -415,7 +415,6 @@ namespace ImGui
 			}
 		}
 
-		delete drawn;
 
 		// Display nodes
 		for (int node_idx = 0; node_idx < nodes.Size; node_idx++)
@@ -434,8 +433,8 @@ namespace ImGui
 			ImGui::ColorEdit3("##color", &node->Color.x);*/
 			auto anim = animVec->at(node->Name);
 			float progress = anim->mTimeElapsed / anim->mDuration;
-			ImGui::ProgressBar(progress, ImVec2(150, 20.f));
-			ImGui::Text("Transition count: %d", anim->mTransitions.size());
+			ImGui::ProgressBar(progress, ImVec2(150, 10.f), "");
+			ImGui::Text("Num of transition IN/OUT: %d", anim->mTransitions.size());
 			ImGui::EndGroup();
 
 			// Save the size of what we have emitted and whether any of the widgets are being used

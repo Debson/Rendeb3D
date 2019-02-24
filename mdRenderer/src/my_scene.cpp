@@ -36,10 +36,10 @@ void md::Scene::OnWindowOpen()
 	m_Animator.AddAnimation("Header", "assets//Header.fbx");
 	m_Animator.AddAnimation("Running", "assets//Running.fbx");
 	
-	m_Animator.AddTransition("Start", "Header", 10.f, engine::graphics::TransitionType::BILATERAL);
+	m_Animator.AddTransition("Start", "Header", 0.2f, engine::graphics::TransitionType::BILATERAL);
 	//m_Animator.AddTransition("Goalkepper", "Start", 10.f, engine::graphics::TransitionType::ONESIDED);
-	m_Animator.AddTransition("Start", "Goalkepper", 10.f, engine::graphics::TransitionType::ONESIDED);
-	m_Animator.AddTransition("Start", "Running", 10.f, engine::graphics::TransitionType::BILATERAL);
+	m_Animator.AddTransition("Start", "Goalkepper", 0.2f, engine::graphics::TransitionType::ONESIDED);
+	m_Animator.AddTransition("Start", "Running", 0.2f, engine::graphics::TransitionType::BILATERAL);
 
 	//m_Animator.PlayAnimation("Header");
 	m_Animator.AddParameter("Speed");

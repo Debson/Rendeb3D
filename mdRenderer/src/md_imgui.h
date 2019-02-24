@@ -13,7 +13,7 @@ namespace engine
 	namespace graphics
 	{
 		struct anim_t;
-		typedef std::map<std::string, anim_t*> Animations;
+		typedef std::map<std::string, std::shared_ptr<anim_t>> Animations;
 		struct transition_t;
 	}
 }

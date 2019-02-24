@@ -53,8 +53,8 @@ namespace engine
 
 	void graphics::ModelController::CreateTransition(std::string const &firstAnim, std::string const &secondAnim, f32 time, graphics::TransitionType type)
 	{
-		anim_t *anim = nullptr;
-		if((anim = GetAnimation(firstAnim)) != nullptr)
+		std::shared_ptr<graphics::anim_t> anim = GetAnimation(firstAnim);
+		if(anim != nullptr)
 			GetAnimation(firstAnim)->AddTransition(transition_t(secondAnim, time, type));
 		else
 			md_log("Transition: | %s --> %s | could not be created.", firstAnim.c_str(), secondAnim.c_str());;
@@ -126,7 +126,7 @@ namespace engine
 	}
 
 	// Add error checking!!!!!!!!
-	graphics::anim_t *graphics::ModelController::GetAnimation(std::string const &name)
+	std::shared_ptr<graphics::anim_t> graphics::ModelController::GetAnimation(std::string const &name)
 	{
 		try
 		{
