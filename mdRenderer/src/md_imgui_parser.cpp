@@ -17,22 +17,42 @@ namespace ImGui
 		std::stringstream mdFileLoadedInMemory;
 		std::stringstream mdOriginalFileContent;
 
-		template <typename T>
-		void WriteKeyWithValue(std::string const &key, std::vector<T> vals);
+		void OpenConfig();
 
 		template <typename T>
-		std::vector<T> ReadKeyWithValue(std::string const &key);
+		void WriteKeyWithValue(std::string const &key, std::vector<T> vals, bool replaceExisting);
+
+		
+		std::vector<float> ReadKeyWithValue(std::string const &key);
+		std::vector<std::string> ReadKeyWithString(std::string const &key);
 	}
-
-	template <typename T>
-	void Config::WriteKeyWithValue(std::string const &key, std::vector<T> vals)
+	
+	void Config::OpenConfig()
 	{
+		if (mdFileLoadedInMemory.str().empty())
+		{
+			mdFile.open(mdFileName);
+			if (!mdFile.is_open())
+				md_error("ImGui Config Parser ERROR: Could not open file %s", mdFileName);
+			mdFileLoadedInMemory << mdFile.rdbuf();
+			mdOriginalFileContent << mdFileLoadedInMemory.str();
+			mdFile.close();
+		}
+	}
+	
+	template <typename T>
+	void Config::WriteKeyWithValue(std::string const &key, std::vector<T> vals, bool replaceExisting)
+	{
+		OpenConfig();
+
 		std::string buffer = mdFileLoadedInMemory.str();
 		std::string newStr(key + "=");
-		
+		std::stringstream ss;
 		for (auto v : vals)
 		{
-			newStr += std::to_string(v);
+			ss.str("");
+			ss << v;
+			newStr += ss.str();
 			newStr += ',';
 		}
 		newStr[newStr.size() - 1] = '\n';
@@ -40,8 +60,9 @@ namespace ImGui
 		
 
 		int keyPos = buffer.find(key);
-		if (keyPos >= 0)
+		if (keyPos >= 0 && replaceExisting)
 		{
+			// If key already exists && needs to be replaced with new values
 			int newLinePos = buffer.substr(keyPos + 1, buffer.size()).find_first_of('\n');
 			if (mdFileLoadedInMemory.str().at(keyPos) != '\n')
 				mdFileLoadedInMemory.str().at(keyPos + 1) = '\n';
@@ -58,8 +79,9 @@ namespace ImGui
 				mdFileLoadedInMemory.str().at(keyPos + newStr.size() + 1) = 0;
 			}
 		}
-		else
+		else if(keyPos < 0)
 		{
+			// If key doesn't exist
 			if (mdFileLoadedInMemory.str().back() != '\n')
 				mdFileLoadedInMemory.str(mdFileLoadedInMemory.str().substr(0, mdFileLoadedInMemory.str().size()) + '\n');
 
@@ -68,14 +90,51 @@ namespace ImGui
 			test = mdFileLoadedInMemory.str();
 		}
 	}
-
-	template <typename T>
-	std::vector<T> Config::ReadKeyWithValue(std::string const &key)
+	
+	std::vector<float> Config::ReadKeyWithValue(std::string const &key)
 	{
-		/*	Not finished. If val doesn;t have '.', its int otherwise it's float, if has letters, it's string.
-			put constructing a new value from string till finish of the line(line MUST END WITH eol sign)
-		*/
-		int pos = mdFileLoadedInMemory.str().find(name);
+		OpenConfig();
+
+		std::vector<float> vals;
+		float val;
+		int pos = mdFileLoadedInMemory.str().find(key);
+		if (pos >= 0)
+		{
+			std::string buffer = mdFileLoadedInMemory.str().substr(pos, mdFileLoadedInMemory.str().size());
+			buffer = buffer.substr(0, buffer.find_first_of('\n'));
+			int pos = key.size() + 1;
+			int comma = buffer.find_first_of(',') + 1;
+			buffer = buffer.substr(pos, comma - pos - 1);
+			do
+			{
+				std::stringstream ss;
+				buffer = buffer.substr(pos, comma - pos - 1);
+				ss << buffer;
+				ss >> val;
+				vals.push_back(val);
+				ss.str("");
+				ss.clear();
+				pos = comma;
+				comma = buffer.find_first_of(',') + 1;
+				/*ss >> val;
+				vals.push_back(val);*/
+
+			}
+			while (comma >= 0);
+
+			return vals;
+		}
+
+		return vals;
+	}
+
+	std::vector<std::string> Config::ReadKeyWithString(std::string const &key)
+	{
+		OpenConfig();
+
+		std::vector<std::string> vals;
+		std::string val;
+		int pos = mdFileLoadedInMemory.str().find(key);
 		if (pos >= 0)
 		{
 			std::string buffer = mdFileLoadedInMemory.str().substr(pos, mdFileLoadedInMemory.str().size());
@@ -85,15 +144,19 @@ namespace ImGui
 			std::string temp = buffer;
 			std::stringstream ss;
 			ss << buffer.substr(pos, comma - pos - 1);
-			ss >> val->x;
+			ss >> val;
+			vals.push_back(val);
 			ss.str("");
 			ss.clear();
 			ss << buffer.substr(comma, buffer.size() - comma);
-			ss >> val->y;
-			return true;
-		}
-	}
+			ss >> val;
+			vals.push_back(val);
 
+			return vals;
+		}
+
+		return vals;
+	}
 
 	void Config::SetName(std::string const &name)
 	{
@@ -125,68 +188,50 @@ namespace ImGui
 		}
 	}
 
-	void Config::SaveFloat(std::string const &name, float val)
+	void Config::SaveFloat(std::string const &name, float val, bool replaceExisting)
 	{
-		WriteKeyWithValue(name, std::vector<float>{val});
+		WriteKeyWithValue(name, std::vector<float>{val}, replaceExisting);
 	}
 
-	void Config::SaveInt(std::string const &name, int val)
+	void Config::SaveInt(std::string const &name, int val, bool replaceExisting)
 	{
-		WriteKeyWithValue(name, std::vector<int>{val});
+		WriteKeyWithValue(name, std::vector<int>{val}, replaceExisting);
 	}
 
-	void Config::SaveBool(std::string const &name, bool val)
+	void Config::SaveBool(std::string const &name, bool val, bool replaceExisting)
 	{
-		WriteKeyWithValue(name, std::vector<int>{val});
+		WriteKeyWithValue(name, std::vector<int>{val}, replaceExisting);
 	}
 
-	void Config::SaveString(std::string const &name, std::string const &val)
+	void Config::SaveString(std::string const &name, std::string const &val, bool replaceExisting)
 	{
-		WriteKeyWithValue(name, std::vector<std::string>{val});
+		WriteKeyWithValue(name, std::vector<std::string>{val}, replaceExisting);
 	}
 
-	void Config::SaveVec2(std::string const & name, ImVec2 vec)
+	void Config::SaveVec2(std::string const & name, ImVec2 vec, bool replaceExisting)
 	{
-		WriteKeyWithValue(name, std::vector<float>{vec.x, vec.y});
+		WriteKeyWithValue(name, std::vector<float>{vec.x, vec.y}, replaceExisting);
 	}
 
-	void Config::ReadFloat(std::string const &name, float *val)
+	bool Config::ReadFloat(std::string const &name, float *val)
 	{
-		mdFileLoadedInMemory.clear();
-		mdFileLoadedInMemory.seekg(0, std::ios::beg);
-		std::string buffer;
-		while (std::getline(mdFileLoadedInMemory, buffer))
+		auto vals = ReadKeyWithValue(name);
+		if (!vals.empty())
 		{
-			if (buffer.find(mdCurrentWinName) != std::string::npos)
-			{
-				while (buffer.find(name) == std::string::npos &&std::getline(mdFileLoadedInMemory, buffer) && buffer.find(name) == std::string::npos) {}
-				int pos = buffer.find('=') + 1;
-				std::stringstream ss;
-				ss << buffer.substr(pos, buffer.size());
-				ss >> *val;
-				break;
-			}
+			*val = vals[0];
+			return true;
 		}
+
+		return false;
 	}
 
 	bool Config::ReadVec2(std::string const &name, ImVec2 *val)
 	{
-		
-		int pos = mdFileLoadedInMemory.str().find(name);
-		if (pos >= 0)
+		auto vals = ReadKeyWithValue(name);
+		if (!vals.empty())
 		{
-			std::string buffer = mdFileLoadedInMemory.str().substr(pos, mdFileLoadedInMemory.str().size());
-			buffer = buffer.substr(0, buffer.find_first_of('\n'));
-			int pos = buffer.find('=') + 1;
-			int comma = buffer.find_first_of(',') + 1;
-			std::string temp = buffer;
-			std::stringstream ss;
-			ss << buffer.substr(pos, comma - pos - 1);
-			ss >> val->x;
-			ss.str("");
-			ss.clear();
-			ss << buffer.substr(comma, buffer.size() - comma);
-			ss >> val->y;
+			val->x = vals[0];
+			val->y = vals[1];
 			return true;
 		}
 

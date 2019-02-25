@@ -29,17 +29,17 @@ namespace ImGui
 		// Start writing under the "Window Name" values in config
 		void BeginConfig(std::string const &windowName);
 		
-		void SaveFloat(std::string const &name, float val);
+		void SaveFloat(std::string const &name, float val, bool replaceExisting = false);
 
-		void SaveInt(std::string const &name, int val);
+		void SaveInt(std::string const &name, int val, bool replaceExisting = false);
 
-		void SaveBool(std::string const &name, bool val);
+		void SaveBool(std::string const &name, bool val, bool replaceExisting = false);
 
-		void SaveString(std::string const &name, std::string const &val);
+		void SaveString(std::string const &name, std::string const &val, bool replaceExisting = false);
 
-		void SaveVec2(std::string const & name, ImVec2 vec);
+		void SaveVec2(std::string const & name, ImVec2 vec, bool replaceExisting = false);
 
-		void ReadFloat(std::string const &name, float *val);
+		bool ReadFloat(std::string const &name, float *val);
 
 		bool ReadVec2(std::string const &name, ImVec2 *val);
 

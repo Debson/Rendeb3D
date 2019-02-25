@@ -458,7 +458,7 @@ namespace ImGui
 			{
 				node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
 				ImGui::Config::BeginConfig(windowName);
-				ImGui::Config::SaveVec2(node->Name, node->Pos);
+				ImGui::Config::SaveVec2(node->Name, node->Pos, true);
 				ImGui::Config::EndConfig();
 				ImGui::Config::UpdateConfig();
 			}
