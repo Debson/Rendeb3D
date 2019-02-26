@@ -2,8 +2,9 @@
 
 namespace md
 {
-	engine::Animator::Animator() { }
-	engine::Animator::Animator(GameObject *obj) 
+	engine::Animator::Animator() : Object("") { }
+
+	engine::Animator::Animator(GameObject *obj) : Object("")
 	{ 
 		m_Graphics = obj->graphics; 
 	}

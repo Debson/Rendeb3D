@@ -208,8 +208,6 @@ namespace engine
 
 			void loadAnim(std::string const &name, std::string const &path)
 			{
-				//anim_t *anim = new anim_t(name, path);
-				
 				m_AnimationsLoaded.insert(std::make_pair(name, std::make_shared<anim_t>(name, path)));
 			}
 
@@ -248,7 +246,7 @@ namespace engine
 				transforms.resize(m_BonesInfo.size());
 				for (u32 i = 0; i < m_BonesInfo.size(); i++)
 				{
-					transforms[i] = mdEngine::math::aiMatrix4x4ToGlm(m_BonesInfo[i].finalTransform);
+					transforms[i] = math::aiMatrix4x4ToGlm(m_BonesInfo[i].finalTransform);
 				}
 			}
 
@@ -271,8 +269,7 @@ namespace engine
 			void RenderGUI()
 			{
 				ImGui::Begin("_DEBUG_");
-				//ImGui::SetNextTreeNodeOpen("Animations");
-				static bool animatorActive = true;
+				static bool animatorActive = false;
 				if (ImGui::Button("Display Animator Window") == true)
 				{
 					animatorActive = !animatorActive;

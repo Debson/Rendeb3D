@@ -1,7 +1,7 @@
 #include "objects.h"
 
 #include <unordered_map>
-
+#include <algorithm>
 
 namespace md
 {
@@ -14,14 +14,10 @@ namespace md
 
 	u32 engine::Object::ObjectCounter = 0;
 
-	engine::Object::Object() { }
-
-	engine::Object::Object(std::string name)
+	engine::Object::Object(std::string const &name) : Component(name)
 	{
 		OnCreate(name);
 	}
-
-	engine::Object::~Object() { }
 
 	u32 engine::Object::GetInstanceID()
 	{
@@ -48,7 +44,7 @@ namespace md
 		return true;
 	}
 
-	void engine::Object::OnCreate(std::string &name)
+	void engine::Object::OnCreate(std::string const &name)
 	{
 		m_Name = name;
 		m_InstanceID = ObjectCounter;

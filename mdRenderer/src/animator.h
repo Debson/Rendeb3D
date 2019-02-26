@@ -5,13 +5,16 @@
 
 #include "objects.h"
 #include "graphics_types.h"
+#include "component.h"
 
 namespace md
 {
 	namespace engine
 	{
-		class Animator
+		class Animator : public Object
 		{
+			CLASS_DECLARATION(Animator);
+
 		public:
 			Animator();
 			Animator(GameObject *obj);

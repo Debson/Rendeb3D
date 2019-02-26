@@ -87,7 +87,6 @@ namespace ImGui
 
 			animCounter = 0;
 			ImVec2 startPos(40, 50);
-			Config::BeginConfig(windowName);
 			for (auto & i : *animVec)
 			{
 				ImVec2 pos;
@@ -104,7 +103,6 @@ namespace ImGui
 
 				animCounter++;
 			}
-			Config::EndConfig();
 			Config::UpdateConfig();
 
 			delete slots;
@@ -238,8 +236,6 @@ namespace ImGui
 			{
 				if (links[i].OutputIdx == link->InputIdx && node_out->Slots > 1 && (!drawn[link_idx] && !drawn[i]))
 				{
-					// out = red
-					// in = yellow
 					float h = -6;
 					float a = 8.f;
 					ImVec2 p1_space = p1 + ImVec2(spacing, spacing);
@@ -271,7 +267,7 @@ namespace ImGui
 					pb.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
 					pb.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
 
-					draw_list->AddLine(p1_space, p2_space, IM_COL32(150, 150, 150, 255), 2.0f);
+					draw_list->AddLine(p1_space, p2_space, IM_COL32(150, 150, 150, 150), 2.0f);
 
 					if (i == activeLinkID)
 					{
@@ -280,7 +276,7 @@ namespace ImGui
 						p1_space.y = p2_space.y - p * (p2_space.y - p1_space.y);
 						draw_list->AddLine(p1_space, p2_space, IM_COL32(0, 255, 0, 255), 2.0f);
 
-						md_log("out! %f", p);
+						//md_log("out! %f", p);
 					}
 					
 					draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
@@ -314,7 +310,7 @@ namespace ImGui
 					pb.x -= (2.5f *h  / dist) * (p2_space.x - p1_space.x);
 					pb.y -= (2.5f *h  / dist) * (p2_space.y - p1_space.y);
 
-					draw_list->AddLine(p1_space , p2_space, IM_COL32(150, 150, 150, 255), 2.0f);
+					draw_list->AddLine(p1_space , p2_space, IM_COL32(150, 150, 150, 150), 2.0f);
 
 					// Draw transition progress
 					
@@ -325,7 +321,7 @@ namespace ImGui
 						p2_space.y = p1_space.y + (p * dist / dist) * (p2_space.y - p1_space.y);
 						draw_list->AddLine(p1_space, p2_space, IM_COL32(0, 255, 0, 255), 2.0f);
 
-						md_log("in! %f", p);
+						//md_log("in! %f", p);
 					}
 					
 					draw_list->AddTriangleFilled(pa, pb, pc, IM_COL32(150, 150, 150, 255));
@@ -340,25 +336,10 @@ namespace ImGui
 
 			if (singleTransitionLine && !drawn[link_idx])
 			{
-				ImVec4 color(150, 150, 150, 255);
+				ImVec4 color(150, 150, 150, 150);
 				float h = 6;
 				float a = 8.f;
 				auto anim = animVec->at(node_out->Name);
-				/*bool isOut = true;
-				for (auto & trans : anim->mTransitions)
-				{
-					if (trans.mNextAnimName == anim->mName)
-					{
-						isOut = false;
-						break;
-					}
-				}
-				if (anim->mTransitions.empty())
-					isOut = false;
-				if (isOut)
-				{
-					color = ImVec4(200, 200, 100, 255);
-				}*/
 
 				draw_list->AddLine(p1, p2, IM_COL32(color.x, color.y, color.z, color.w), 2.0f);
 
@@ -410,7 +391,7 @@ namespace ImGui
 					p2.y = p1.y + (p * dist / dist) * (p2.y - p1.y);
 					draw_list->AddLine(p1, p2, IM_COL32(0, 255, 0, 255), 2.0f);
 
-					md_log("out! %f", p);
+					//md_log("out! %f", p);
 				}
 			}
 		}
@@ -457,9 +438,7 @@ namespace ImGui
 			if (node_moving_active && ImGui::IsMouseDragging(0))
 			{
 				node->Pos = node->Pos + ImGui::GetIO().MouseDelta;
-				ImGui::Config::BeginConfig(windowName);
 				ImGui::Config::SaveVec2(node->Name, node->Pos, true);
-				ImGui::Config::EndConfig();
 				ImGui::Config::UpdateConfig();
 			}
 			

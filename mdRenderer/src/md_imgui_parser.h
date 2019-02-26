@@ -9,25 +9,14 @@ namespace ImGui
 	namespace Config
 	{
 		/*
-		
-			fun WriteKeyWithVal(string, string, values...)
-			if key doesn't exist, go to end of the file and inser it
-			if exist, find pos of its first letter, then find first_of('\n') or if doesn't exist, 
-			then assume that last pos will be eof
-			this will allow to use one function with multiple values
-			write overloaded function for float and int
-		
+			Still requires better error checking. It's good enought for now.			
 		*/
-
 
 		/* Assume for now that config name is "imgui.ini" as a default */
 
 		void SetName(std::string const &name);
 
 		std::string GetName();
-
-		// Start writing under the "Window Name" values in config
-		void BeginConfig(std::string const &windowName);
 		
 		void SaveFloat(std::string const &name, float val, bool replaceExisting = false);
 
@@ -42,8 +31,6 @@ namespace ImGui
 		bool ReadFloat(std::string const &name, float *val);
 
 		bool ReadVec2(std::string const &name, ImVec2 *val);
-
-		void EndConfig();
 
 		void UpdateConfig();
 	}

@@ -1,22 +1,26 @@
 #include "objects.h"
+#include "physics.h"
+#include "shader_manager.h"
 
 namespace md
 {
 	namespace engine
 	{
+		std::vector< std::unique_ptr< GameObject > > mdGameObjectsContainer;
 		f32 scale = 1.f;
 	}
 
 	engine::GameObject::GameObject() { }
 
-	engine::GameObject::GameObject(std::string name, graphics::Type type) : Object(name)
+	engine::GameObject::GameObject(std::string const &name, graphics::Type type)
 	{ 
 		graphics = new Graphics(type);
 	}
 
-	engine::GameObject::GameObject(std::string name, std::string path) : Object(name) 
+	engine::GameObject::GameObject(std::string const &name, std::string path)
 	{ 
 		graphics = new Graphics(name, path);
+		m_Shader = shaders::Model();
 	}
 
 	engine::GameObject::~GameObject() 
@@ -24,24 +28,42 @@ namespace md
 		delete graphics;
 	}
 
-	void engine::GameObject::Render(mdGraphics::Shader *shader)
+	void engine::GameObject::Render()
 	{
-		shader->use();
+		m_Shader->use();
 		transform.matrixModel = glm::mat4(1.f);
 		transform.updateMatrices(transform.matrixModel);
-		shader->UpdateMatrices();
-		shader->setMat4("model", transform.matrixModel);
+		m_Shader->UpdateMatrices();
+		m_Shader->setMat4("model", transform.matrixModel);
 
-		graphics->Render(shader);
+		graphics->Render(m_Shader);
 
 		RenderGUI();
+	}
+
+	/*engine::GameObject &engine::GameObject::CreatePrimitive(graphics::Type type)
+	{
+
+	}*/
+
+	engine::GameObject *engine::GameObject::LoadModel(std::string const& name, std::string const &path)
+	{
+		//const auto &model = std::make_unique<GameObject>(name, path);
+		mdGameObjectsContainer.emplace_back(std::make_unique<GameObject>(name, path));
+
+		return mdGameObjectsContainer.back().get();
+	}
+
+	std::vector< std::unique_ptr< engine::GameObject > > &engine::GameObject::GetGameObjectsContainer()
+	{
+		return mdGameObjectsContainer;
 	}
 
 	void engine::GameObject::RenderGUI()
 	{
 		if (m_RenderGui)
 		{
-			ImGui::Begin("_DEBUG_");
+			/*ImGui::Begin("_DEBUG_");
 			if (ImGui::TreeNode(m_Name.c_str()))
 			{
 				ImGui::SliderFloat("Position X", &transform.position.x, -50.1f, 50.1f);
@@ -56,7 +78,10 @@ namespace md
 				ImGui::Unindent();
 				ImGui::TreePop();
 			}
-			ImGui::End();
+			ImGui::End();*/
 		}
 	}
+
+	
+
 }

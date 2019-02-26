@@ -10,18 +10,17 @@
 #include "physics.h"
 #include "gui.h"
 #include "model_controller.h"
-
+#include "component.h"
 
 namespace md
 {
 	namespace engine
 	{
-		class Object
+		class Object : public Component
 		{
 		public:
-			Object();
-			Object(std::string name);
-			virtual ~Object();
+			Object(std::string const &name);
+			virtual ~Object() = default;
 
 			u32 GetInstanceID();
 			std::string ToString();
@@ -35,47 +34,90 @@ namespace md
 			std::string m_Name;
 			u32 m_InstanceID;
 			static u32 ObjectCounter;
-			void OnCreate(std::string &name);
+			void OnCreate(std::string const &name);
 		};
 
-		class Graphics 
+		class Graphics : public Object
 		{
+			CLASS_DECLARATION(Graphics);
+
 		public:
-			Graphics();
-			explicit Graphics(graphics::Type type);
-			Graphics(std::string name, std::string path);
+			Graphics(graphics::Type type);
+			Graphics(std::string const &name, std::string const &path);
 			~Graphics();
 
 			virtual void Render(mdGraphics::Shader *shader);
+			virtual void Render();
 			virtual void ApplyTexture(GLuint);
 			virtual void ApplyTexture(std::string texPath);
 			graphics::ModelController *GetModelController();
 
+
 		private:
 				graphics::Renderable		m_Renderable;
-				graphics::ModelController	*m_ModelController;
+				std::unique_ptr< graphics::ModelController > m_ModelController;
 				std::string					m_ModelPath;
 		};
 
-		class GameObject : public Object, gui::Gui
+		class GameObject : gui::Gui
 		{
 		public:
 			GameObject();
-			GameObject(std::string name, graphics::Type type = graphics::Type::tModel);
-			GameObject(std::string name, std::string path);
+			GameObject(std::string const &name, graphics::Type type = graphics::Type::tModel);
+			GameObject(std::string const &name, std::string path);
 			~GameObject();
 
-			void Render(mdGraphics::Shader *shader);
+			void Render();
+
+			//static GameObject &CreatePrimitive(graphics::Type type);
+			static GameObject *LoadModel(std::string const& name, std::string const &path);
+			static std::vector< std::unique_ptr< engine::GameObject > > &GetGameObjectsContainer();
+
+			template< class ComponentType, typename... Args >
+			void                                    AddComponent(Args&&... params);
+
+			template< class ComponentType >
+			ComponentType &                         GetComponent();
+
+			/*template< class ComponentType >
+			ComponentType &                         GetComponent();
+
+			template< class ComponentType >
+			bool                                    RemoveComponent();
+
+			template< class ComponentType >
+			std::vector< ComponentType * >          GetComponents();
+
+			template< class ComponentType >
+			int                                     RemoveComponents();*/
+
 
 			physics::Transform transform;
+			std::vector< std::unique_ptr< Component > > components;
 			Graphics *graphics;
 
 		protected:
 			void RenderGUI();
 
 		private:
+			graphics::Shader *m_Shader;
 		};
 
+		template< class ComponentType, typename... Args >
+		void GameObject::AddComponent(Args&&... params)
+		{
+			components.emplace_back(std::make_unique< ComponentType >(std::forward< Args >(params)...));
+		}
+
+		template< class ComponentType >
+		ComponentType & GameObject::GetComponent() {
+			for (auto && component : components) {
+				if (component->IsClassType(ComponentType::Type))
+					return *static_cast<ComponentType *>(component.get());
+			}
+
+			return *std::unique_ptr< ComponentType >(nullptr);
+		}
 	}
 }
 

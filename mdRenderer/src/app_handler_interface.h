@@ -2,7 +2,7 @@
 #define APP_HANDLER_INTERFACE_H
 
 #include <SDL.h>
-
+#include "math.h"
 
 namespace md
 {
@@ -33,11 +33,18 @@ namespace md
 			//Trap mouse into window
 			void SetRelativeMouseMode(SDL_bool grab);
 
+			void SetClearColor(math::Color4 color);
+
+			math::Color4 &GetClearColor();
+
 			void FreeCursor();
+
+
 		protected:
 			SDL_Window *m_Window;
 			
 		private:
+			math::Color4 m_ClearColor;
 			SDL_Cursor *m_Cursor;
 
 			

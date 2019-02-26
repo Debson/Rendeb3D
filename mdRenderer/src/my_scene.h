@@ -23,9 +23,6 @@ namespace md
 
 		gui::Gui m_Gui;
 		mdGraphics::Camera m_Camera;
-		engine::Animator m_Animator;
-
-		engine::GameObject *myModel;
 
 		b8 m_DebugMode;
 	};

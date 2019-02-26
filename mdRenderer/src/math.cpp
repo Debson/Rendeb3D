@@ -1,6 +1,6 @@
 #include "math.h"
 
-namespace mdEngine
+namespace md
 {
 	/*	glm::mat3 math::aiMatrix3x3ToGlm(const aiMatrix3x3 &from)
 		{
@@ -12,6 +12,9 @@ namespace mdEngine
 			to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3;
 			return to;
 		}*/
+
+		math::Color4::Color4() { }
+		math::Color4::Color4(float red, float green, float blue, float alpha) : r(red), g(green), b(blue), a(alpha) { }
 
 		glm::mat4 math::aiMatrix4x4ToGlm(const aiMatrix4x4 &from)
 		{

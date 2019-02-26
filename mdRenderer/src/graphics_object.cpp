@@ -2,12 +2,16 @@
 
 #include "md_load_texture.h"
 #include "time.h"
+#include "component.h"
 
 namespace md
 {
-	engine::Graphics::Graphics() { }
+	namespace engine
+	{
+	}
 
-	engine::Graphics::Graphics(graphics::Type type)
+
+	engine::Graphics::Graphics(graphics::Type type) : Object("lol")
 	{
 		m_Renderable.m_Type = type;
 		m_Renderable.InitializeFromVertices();
@@ -25,15 +29,20 @@ namespace md
 		}
 	}
 
-	engine::Graphics::Graphics(std::string name, std::string path)
+	engine::Graphics::Graphics(std::string const &name, std::string const &path) : Object(name)
 	{
 		m_Renderable.m_Type = graphics::Type::tModel;
-		m_ModelController = new graphics::ModelController(path);
+		m_ModelController = std::make_unique<graphics::ModelController>(path);
 	}
 
 	engine::Graphics::~Graphics() 
 	{ 
-		delete m_ModelController;
+		//delete m_ModelController;
+	}
+
+	void engine::Graphics::Render()
+	{
+
 	}
 
 	void engine::Graphics::Render(mdGraphics::Shader *shader)
@@ -70,11 +79,12 @@ namespace md
 
 	engine::graphics::ModelController *engine::Graphics::GetModelController()
 	{
-		return m_ModelController;
+		return m_ModelController.get();
 	}
 
 	void engine::Graphics::ApplyTexture(std::string texPath)
 	{
 		m_Renderable.m_Texture = mdLoadTexture(texPath);
 	}
+
 }

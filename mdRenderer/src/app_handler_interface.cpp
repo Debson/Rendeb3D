@@ -27,6 +27,16 @@ namespace md
 		SDL_SetRelativeMouseMode(grab);
 	}
 
+	void core::ApplicationHandlerInterface::SetClearColor(math::Color4 color)
+	{
+		m_ClearColor = color;
+	}
+
+	math::Color4 &core::ApplicationHandlerInterface::GetClearColor()
+	{
+		return m_ClearColor;
+	}
+
 	void core::ApplicationHandlerInterface::FreeCursor()
 	{
 		SDL_FreeCursor(m_Cursor);

@@ -100,27 +100,23 @@ namespace ImGui
 		int pos = mdFileLoadedInMemory.str().find(key);
 		if (pos >= 0)
 		{
+			// Extract the part with numbers only
 			std::string buffer = mdFileLoadedInMemory.str().substr(pos, mdFileLoadedInMemory.str().size());
-			buffer = buffer.substr(0, buffer.find_first_of('\n'));
-			int pos = key.size() + 1;
-			int comma = buffer.find_first_of(',') + 1;
-			buffer = buffer.substr(pos, comma - pos - 1);
-			do
+			int nl_pos = buffer.find_first_of('\n');
+			buffer = buffer.substr(key.size() + 1, nl_pos - key.size() - 1);
+
+			int comma_count = std::count(buffer.begin(), buffer.end(), ',');
+			int start_pos = 0;
+			// There is always (comma_count + 1) numbers that need to be read
+			for (int i = 0; i < comma_count + 1; i++)
 			{
 				std::stringstream ss;
-				buffer = buffer.substr(pos, comma - pos - 1);
-				ss << buffer;
+				int comma_pos = buffer.find_first_of(',') + 1;
+				ss << buffer.substr(start_pos, comma_pos - 1);
 				ss >> val;
 				vals.push_back(val);
-				ss.str("");
-				ss.clear();
-				pos = comma;
-				comma = buffer.find_first_of(',') + 1;
-				/*ss >> val;
-				vals.push_back(val);*/
-
+				start_pos = comma_pos;
 			}
-			while (comma >= 0);
 
 			return vals;
 		}
@@ -166,26 +162,6 @@ namespace ImGui
 	std::string Config::GetName()
 	{
 		return "";
-	}
-
-	void Config::BeginConfig(std::string const &windowName)
-	{
-		/*if (mdFile.is_open())
-			md_error("ImGui Config Parser ERROR!: EndConfig() wasn't called.");*/
-
-		mdCurrentWinName = windowName;
-
-		if (mdFileLoadedInMemory.str().empty())
-		{
-			//WriteKeyWithValue("test", std::vector<float>{10.f, 20.f, 12.12f});
-
-			mdFile.open(mdFileName);
-			if (!mdFile.is_open())
-				md_error("ImGui Config Parser ERROR: Could not open file %s", mdFileName);
-			mdFileLoadedInMemory << mdFile.rdbuf();
-			mdOriginalFileContent << mdFileLoadedInMemory.str();
-			mdFile.close();
-		}
 	}
 
 	void Config::SaveFloat(std::string const &name, float val, bool replaceExisting)
@@ -236,11 +212,6 @@ namespace ImGui
 		}
 
 		return false;
-	}
-
-	void Config::EndConfig()
-	{
-		mdCurrentWinName = std::string("");
 	}
 
 	void Config::UpdateConfig()
