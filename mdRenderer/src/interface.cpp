@@ -14,41 +14,41 @@ namespace md
 		f32 shiftSpeed = 15.f;
 	};
 
-	void interface::ProcessCameraInput(engine::Camera &cam)
+	void interface::ProcessCameraInput(engine::Camera *cam)
 	{
 
 		if (input::IsKeyDown(input::KeyCode::W) && input::IsKeyDown(input::KeyCode::LCtrl))
 		{
 			if (input::IsKeyDown(input::KeyCode::LShift))
-				cam.ProcessKeyboard(engine::CameraMovement::Forward, time::DeltaTime, shiftSpeed);
+				cam->ProcessKeyboard(engine::CameraMovement::Forward, time::DeltaTime, shiftSpeed);
 			else
-				cam.ProcessKeyboard(engine::CameraMovement::Forward, time::DeltaTime);
+				cam->ProcessKeyboard(engine::CameraMovement::Forward, time::DeltaTime);
 		}
 		if (input::IsKeyDown(input::KeyCode::S))
 		{
 			if (input::IsKeyDown(input::KeyCode::LShift))
-				cam.ProcessKeyboard(engine::CameraMovement::Backward, time::DeltaTime, shiftSpeed);
+				cam->ProcessKeyboard(engine::CameraMovement::Backward, time::DeltaTime, shiftSpeed);
 			else
-				cam.ProcessKeyboard(engine::CameraMovement::Backward, time::DeltaTime);
+				cam->ProcessKeyboard(engine::CameraMovement::Backward, time::DeltaTime);
 		}
 		if (input::IsKeyDown(input::KeyCode::A))
 		{
 			if (input::IsKeyDown(input::KeyCode::LShift))
-				cam.ProcessKeyboard(engine::CameraMovement::Left, time::DeltaTime, shiftSpeed);
+				cam->ProcessKeyboard(engine::CameraMovement::Left, time::DeltaTime, shiftSpeed);
 			else
-				cam.ProcessKeyboard(engine::CameraMovement::Left, time::DeltaTime);
+				cam->ProcessKeyboard(engine::CameraMovement::Left, time::DeltaTime);
 		}
 		if (input::IsKeyDown(input::KeyCode::D))
 		{
 			if (input::IsKeyDown(input::KeyCode::LShift))
-				cam.ProcessKeyboard(engine::CameraMovement::Right, time::DeltaTime, shiftSpeed);
+				cam->ProcessKeyboard(engine::CameraMovement::Right, time::DeltaTime, shiftSpeed);
 			else
-				cam.ProcessKeyboard(engine::CameraMovement::Right, time::DeltaTime);
+				cam->ProcessKeyboard(engine::CameraMovement::Right, time::DeltaTime);
 		}
 
 		s32 x, y;
 		input::GetRelativeMousePosition(&x, &y);
-		cam.ProcessMouseMovement(x, y);
+		cam->ProcessMouseMovement(x, y);
 	}
 
 	bool interface::ProcessUserDebugInput(b8 *debug)

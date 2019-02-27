@@ -15,7 +15,7 @@ namespace md
 
 	engine::Gui gui;
 	engine::GameObject *cameraObj;
-	engine::Camera cam;
+	engine::Camera *cam;
 }
 
 md::Scene::~Scene()
@@ -32,8 +32,8 @@ void md::Scene::OnWindowOpen()
 	
 	cameraObj = engine::GameObject::Create("Camera");
 	cameraObj->AddComponent<engine::Camera>(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT), glm::vec3(0.f, 0.f, 3.f));
-	cam = cameraObj->GetComponent<engine::Camera>();
-	mdGraphics::Renderer::SetCamera(&cam);
+	cam = &cameraObj->GetComponent<engine::Camera>();
+	mdGraphics::Renderer::SetCamera(cam);
 	
 	std::vector<std::string> faces =
 	{
@@ -80,7 +80,7 @@ void md::Scene::OnRealtimeUpdate()
 void md::Scene::OnRealtimeRender()
 {
 	gui.RenderGUI();
-	cam.RenderGUI();
+	cam->RenderGUI();
 
 	RenderScene();
 }

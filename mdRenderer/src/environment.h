@@ -25,7 +25,7 @@ namespace md
 			static GLuint textureID;
 		private:
 			static GLuint m_VAO, m_VBO;
-			static engine::Camera m_Camera;
+			static engine::Camera *m_Camera;
 			static glm::mat4 m_View;
 			static b8 m_Enabled;
 		};
