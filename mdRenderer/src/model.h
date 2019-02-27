@@ -169,7 +169,7 @@ namespace engine
 
 		typedef std::map<std::string, std::shared_ptr<anim_t>> Animations;
 		
-		class Model : private gui::Gui
+		class Model : private engine::Gui
 		{
 		public:
 

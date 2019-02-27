@@ -3,6 +3,7 @@
 #include <gtc/matrix_transform.hpp>
 
 #include "vertices.h"
+#include "camera.h"
 
 namespace md
 {
@@ -17,7 +18,7 @@ namespace md
 
 	mdGraphics::Shader::~Shader() { }
 
-	void mdGraphics::Shader::Configure(Camera &cam)
+	void mdGraphics::Shader::Configure(md::engine::Camera &cam)
 	{
 		/*this->use();
 		this->setMat4("projection", cam.GetProjectionMatrix());*/
@@ -28,16 +29,17 @@ namespace md
 		this->use();
 		this->setMat4("projection", Renderer::GetCamera()->GetProjectionMatrix());
 		this->setMat4("view", Renderer::GetCamera()->GetViewMatrix());
+		
 	}
 
-	mdGraphics::Camera *md::mdGraphics::Renderer::m_Camera = NULL;
+	md::engine::Camera *md::mdGraphics::Renderer::m_Camera = NULL;
 
-	void mdGraphics::Renderer::SetCamera(mdGraphics::Camera *cam)
+	void mdGraphics::Renderer::SetCamera(md::engine::Camera *cam)
 	{
 		m_Camera = cam;
 	}
 
-	mdGraphics::Camera *mdGraphics::Renderer::GetCamera()
+	md::engine::Camera *mdGraphics::Renderer::GetCamera()
 	{
 		return m_Camera;
 	}

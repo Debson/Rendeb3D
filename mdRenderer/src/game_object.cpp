@@ -10,17 +10,27 @@ namespace md
 		f32 scale = 1.f;
 	}
 
-	engine::GameObject::GameObject() { }
+	u32 engine::GameObject::numberOfGameObjects = 0;
+
+	/*engine::GameObject::GameObject() 
+	{
+		mdGameObjectsContainer.emplace_back(std::make_unique<GameObject>("GameObject" + std::to_string(numberOfGameObjects)));
+		numberOfGameObjects++;
+	}*/
 
 	engine::GameObject::GameObject(std::string const &name, graphics::Type type)
 	{ 
+		m_Name = name;
 		graphics = new Graphics(type);
+		numberOfGameObjects++;
 	}
 
 	engine::GameObject::GameObject(std::string const &name, std::string path)
 	{ 
+		m_Name = name;
 		graphics = new Graphics(name, path);
 		m_Shader = shaders::Model();
+		numberOfGameObjects++;
 	}
 
 	engine::GameObject::~GameObject() 
@@ -30,6 +40,9 @@ namespace md
 
 	void engine::GameObject::Render()
 	{
+		if (!m_Shader)
+			return;
+
 		m_Shader->use();
 		transform.matrixModel = glm::mat4(1.f);
 		transform.updateMatrices(transform.matrixModel);
@@ -54,9 +67,29 @@ namespace md
 		return mdGameObjectsContainer.back().get();
 	}
 
+	engine::GameObject *engine::GameObject::Create(std::string const &name)
+	{
+		mdGameObjectsContainer.emplace_back(std::make_unique<GameObject>(name));
+
+		return mdGameObjectsContainer.back().get();
+	}
+
 	std::vector< std::unique_ptr< engine::GameObject > > &engine::GameObject::GetGameObjectsContainer()
 	{
 		return mdGameObjectsContainer;
+	}
+
+	engine::GameObject *engine::GameObject::Find(std::string const &name)
+	{
+		for (auto & gameObject : mdGameObjectsContainer)
+		{
+			if (gameObject->m_Name == name)
+				return gameObject.get();
+		}
+
+		assert(0);
+
+		return (GameObject*)nullptr;
 	}
 
 	void engine::GameObject::RenderGUI()

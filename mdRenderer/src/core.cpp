@@ -12,6 +12,7 @@
 #include "shader_manager.h"
 #include "debug.h"
 #include "objects.h"
+#include "environment.h"
 
 namespace md
 {
@@ -94,11 +95,15 @@ namespace md
 			math::Color4 color = applicationHandler.GetClearColor();
 			glClearColor(color.r, color.g, color.b, color.a);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // should be configurable froom handler
-			for (auto & i : engine::GameObject::GetGameObjectsContainer())
+			for (auto && i : engine::GameObject::GetGameObjectsContainer())
 			{
 				i->Render();
 			}
 			applicationHandler.OnRealtimeRender();
+			if (environment::Skybox::IsEnabled())
+			{
+				environment::Skybox::Render();
+			}
 
 			RenderImgui();
 			SDL_GL_SwapWindow(mWindow);
@@ -262,7 +267,7 @@ namespace md
 
 	void core::RenderImgui()
 	{
-		gui::Gui::RenderFPS();
+		engine::Gui::RenderFPS();
 
 		glViewport(0, 0, (int)mIo.DisplaySize.x, (int)mIo.DisplaySize.y);
 		ImGui::Render();

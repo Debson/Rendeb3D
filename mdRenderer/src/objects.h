@@ -6,7 +6,7 @@
 #include <glad/glad.h>
 
 #include "types.h"
-#include "graphics.h"
+//#include "graphics.h"
 #include "physics.h"
 #include "gui.h"
 #include "model_controller.h"
@@ -59,10 +59,10 @@ namespace md
 				std::string					m_ModelPath;
 		};
 
-		class GameObject : gui::Gui
+		class GameObject : engine::Gui
 		{
 		public:
-			GameObject();
+			//GameObject(std::string const &name);
 			GameObject(std::string const &name, graphics::Type type = graphics::Type::tModel);
 			GameObject(std::string const &name, std::string path);
 			~GameObject();
@@ -71,7 +71,15 @@ namespace md
 
 			//static GameObject &CreatePrimitive(graphics::Type type);
 			static GameObject *LoadModel(std::string const& name, std::string const &path);
+			static GameObject *Create(std::string const& name);
+
+
+			
 			static std::vector< std::unique_ptr< engine::GameObject > > &GetGameObjectsContainer();
+			static GameObject *Find(std::string const &name);
+
+			template< class ComponentType >
+			static ComponentType &FindGameObjectComponent(std::string const &name);
 
 			template< class ComponentType, typename... Args >
 			void                                    AddComponent(Args&&... params);
@@ -95,13 +103,30 @@ namespace md
 			physics::Transform transform;
 			std::vector< std::unique_ptr< Component > > components;
 			Graphics *graphics;
+			static u32 numberOfGameObjects;
 
 		protected:
 			void RenderGUI();
+			std::string m_Name;
 
 		private:
 			graphics::Shader *m_Shader;
 		};
+
+
+		template< class ComponentType >
+		ComponentType &GameObject::FindGameObjectComponent(std::string const &name)
+		{
+			for (auto & gameObject : GameObject::GetGameObjectsContainer())
+			{
+				for (auto && component : gameObject->components)
+				{
+					if (component->IsClassType(ComponentType::Type))
+						return *static_cast<ComponentType *>(component.get());
+				
+				}
+			}
+		}
 
 		template< class ComponentType, typename... Args >
 		void GameObject::AddComponent(Args&&... params)

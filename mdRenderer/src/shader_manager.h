@@ -13,6 +13,7 @@ namespace engine
 		void Init();
 		graphics::Shader *Default();
 		graphics::Shader *Model();
+		graphics::Shader *Skybox();
 	}
 
 }

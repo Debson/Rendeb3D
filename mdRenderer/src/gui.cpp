@@ -6,18 +6,18 @@
 
 namespace md
 {
-	namespace gui
+	namespace engine
 	{
 
 	}
 
-	bool gui::Gui::m_RenderGui = true;
+	bool engine::Gui::m_RenderGui = true;
 
-	gui::Gui::~Gui() { }
+	engine::Gui::~Gui() { }
 
-	void gui::Gui::RenderGUI() { }
+	void engine::Gui::RenderGUI() { }
 
-	void gui::Gui::RenderFPS()
+	void engine::Gui::RenderFPS()
 	{
 		if (m_RenderGui)
 		{
@@ -27,7 +27,7 @@ namespace md
 		}
 	}
 
-	void gui::Gui::SetRenderGUI(b8 val)
+	void engine::Gui::SetRenderGUI(b8 val)
 	{
 		m_RenderGui = val;
 	}

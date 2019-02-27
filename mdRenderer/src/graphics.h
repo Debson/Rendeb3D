@@ -7,14 +7,18 @@
 
 #include <glad/glad.h>
 
-#include "camera.h"
+
+//#include "camera.h"
 
 namespace md
 {
 	namespace engine
 	{
+		class Camera;
+
 		namespace graphics
 		{
+
 			enum Type
 			{
 				tModel,

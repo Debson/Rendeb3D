@@ -9,7 +9,7 @@ namespace md
 	namespace interface
 	{
 
-		void ProcessCameraInput(engine::graphics::Camera &cam);
+		void ProcessCameraInput(engine::Camera &cam);
 
 		bool ProcessUserDebugInput(b8 *debug);
 

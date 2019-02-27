@@ -2,62 +2,59 @@
 
 #include <iostream>
 
-#include "md_imgui_parser.h"
+#include "script_list.h"
+#include "scriptable.h"
+#include "conf.h"
+#include "interface.h"
+#include "realtime_app.h"
+#include "environment.h"
 
 namespace md
 {
-	engine::GameObject *myModel;
-	engine::Animator m_Animator;
+	std::vector<std::unique_ptr<Script>> mdScriptsContainer;
+
+	engine::Gui gui;
+	engine::GameObject *cameraObj;
+	engine::Camera cam;
 }
 
 md::Scene::~Scene()
 {
-	//delete myModel;
+	
 }
 
 void md::Scene::OnWindowOpen()
 {
+	// Setup Scene
 	m_DebugMode = false;
 	SetRelativeMouseMode(SDL_TRUE);
-	m_Camera = mdGraphics::Camera(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT), glm::vec3(0.f, 0.f, 3.f));
-	mdGraphics::Renderer::SetCamera(&m_Camera);
 	this->SetClearColor(math::Color4(0.95f, 0.95f, 0.7f, 1.f));
-
-	myModel = engine::GameObject::LoadModel("Model", "assets//Idle.fbx");
-
-	myModel->AddComponent<engine::Animator>(myModel);
-
-	m_Animator = myModel->GetComponent<engine::Animator>();
-
-
-	//myModel = new engine::GameObject("face", "assets//Idle.fbx");
 	
-	m_Animator.AddAnimation("Goalkepper", "assets//Goalkeeper.fbx");
-	m_Animator.AddAnimation("Header", "assets//Header.fbx");
-	m_Animator.AddAnimation("Running", "assets//Running.fbx");
+	cameraObj = engine::GameObject::Create("Camera");
+	cameraObj->AddComponent<engine::Camera>(glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT), glm::vec3(0.f, 0.f, 3.f));
+	cam = cameraObj->GetComponent<engine::Camera>();
+	mdGraphics::Renderer::SetCamera(&cam);
 	
-	m_Animator.AddTransition("Start", "Header", 0.2f, engine::graphics::TransitionType::BILATERAL);
-	//m_Animator.AddTransition("Goalkepper", "Start", 10.f, engine::graphics::TransitionType::ONESIDED);
-	m_Animator.AddTransition("Start", "Goalkepper", 0.2f, engine::graphics::TransitionType::ONESIDED);
-	m_Animator.AddTransition("Start", "Running", 0.2f, engine::graphics::TransitionType::BILATERAL);
+	std::vector<std::string> faces =
+	{
+		"assets//skybox//right.jpg",
+		"assets//skybox//left.jpg",
+		"assets//skybox//top.jpg",
+		"assets//skybox//bottom.jpg",
+		"assets//skybox//front.jpg",
+		"assets//skybox//back.jpg",
+	};
+	cameraObj->AddComponent<environment::Skybox>(faces);
 
-	//m_Animator.PlayAnimation("Header");
-	m_Animator.AddParameter("Speed");
-	m_Animator.AddParameter("Trigger");
-	m_Animator.AddParameter("Bool");
 
-	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
-	m_Animator.AddTransitionCondition("Running", "Start", "Speed", MD_LESS, 0.2f);
+	// Setup scripts
+	mdScriptsContainer.emplace_back(std::make_unique<SkeletalTests>());
 
-	m_Animator.SetTransitionExitTimeState("Start", "Running", false);
-	
-	m_Animator.SetTransitionExitTimeState("Goalkepper", "Start", false);
-
-	m_Animator.AddTransitionCondition("Start", "Running", "Speed", MD_GREATER, 0.2f);
-		
-	
-	myModel->transform.position.x = 0.f;
-	myModel->transform.localScale = glm::vec3(0.01f);
+	// Execute scripts
+	for (auto && script : mdScriptsContainer)
+	{
+		script->Start();
+	}
 }
 
 void md::Scene::OnWindowClose()
@@ -74,7 +71,7 @@ void md::Scene::OnRealtimeUpdate()
 
 	if (m_DebugMode == false)
 	{
-		interface::ProcessCameraInput(m_Camera);
+		interface::ProcessCameraInput(cam);
 	}
 
 	UpdateScene();
@@ -82,8 +79,8 @@ void md::Scene::OnRealtimeUpdate()
 
 void md::Scene::OnRealtimeRender()
 {
-	m_Gui.RenderGUI();
-	m_Camera.RenderGUI();
+	gui.RenderGUI();
+	cam.RenderGUI();
 
 	RenderScene();
 }
@@ -105,44 +102,15 @@ void md::Scene::ProcessInput(SDL_Event *e)
 
 void md::Scene::RenderScene()
 {
-	/*for (auto & i : myGameObj)
-	{
-		i.Render(&m_DefaultShader);
-	}*/
 	
-
-
-	//myModel.Render(mdShaders::Model());
-	//auto & graphics = myModel->GetComponent<engine::Graphics>();
-	//graphics.Render(mdShaders::Model());
 }
 
 void md::Scene::UpdateScene()
 {
-	
-	if (input::IsKeyPressed(input::KeyCode::R))
+	for (auto && script : mdScriptsContainer)
 	{
-		m_Animator.PlayAnimation("Goalkepper");
+		script->Update();
 	}
-
-	if (input::IsKeyPressed(input::KeyCode::E))
-	{
-		m_Animator.PlayAnimation("Running");
-	}
-
-	if (input::IsKeyPressed(input::KeyCode::T))
-	{
-		m_Animator.SetBool("Bool", true);
-	}
-	if (input::IsKeyPressed(input::KeyCode::Y))
-	{
-		m_Animator.SetBool("Bool", false);;
-	}
-
-	float speed = input::GetAxis("vertical");
-	m_Animator.SetFloat("Speed", speed);
-	
-
 }
 
 

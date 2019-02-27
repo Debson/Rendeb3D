@@ -1,7 +1,11 @@
 #ifndef MY_SCENE_H
 #define MY_SCENE_H
 
-#include "md_renderer_kit.h"
+//#include "md_renderer_kit.h"
+
+#include "app_handler_interface.h"
+#include "types.h"
+
 
 namespace md
 {
@@ -20,9 +24,6 @@ namespace md
 		void ProcessInput(SDL_Event *e);
 		void RenderScene();
 		void UpdateScene();
-
-		gui::Gui m_Gui;
-		mdGraphics::Camera m_Camera;
 
 		b8 m_DebugMode;
 	};

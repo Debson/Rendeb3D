@@ -9,7 +9,7 @@
 
 namespace md
 {
-namespace gui
+namespace engine
 {
 	class Gui
 	{
